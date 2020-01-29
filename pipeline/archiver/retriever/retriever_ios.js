@@ -38,11 +38,21 @@ async function fetchAppData(searchTerm, numberOfApps, perSecond) {
     }
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 (async() => {
     const dbRows = await db.getStaleSearchTerms();
     for (const dbRow of dbRows) {
         logger.info(`searching for: ${dbRow.search_term}`);
-        await fetchAppData(dbRow.search_term, 200, 3);
-        await db.updateLastSearchedDate(dbRow.search_term);
+        try {
+            await fetchAppData(dbRow.search_term, 200, 3);
+            await db.updateLastSearchedDate(dbRow.search_term);
+        } catch(err) {
+            await sleep(2 * 60 * 1000); // wait for two minutes
+        }
     }
 })();

@@ -64,7 +64,14 @@ function flatten(arr) {
  */
 function cartesianProductChars(...args) {
     return args.reduce((prods, arr) =>
-        flatten(prods.map((prod) => arr.map((v) => prod.concat(v)))), [[]]);
+        flatten(prods.map((prod) => arr.map((v) => prod.concat(v)))), [[]])
+            .map( x => x.join('') ); // flatten
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 /**
@@ -76,10 +83,14 @@ function cartesianProductChars(...args) {
 async function scrapeSuggestedWords(startingTokens) {
     // TODO: return array of suggested search terms
     for (const token of startingTokens) {
-        const suggestions = await ios.suggest({ country: 'gb', term: token, throttle: 3 });
-        for (const suggestion of suggestions) {
-            logger.debug(`Inserting to DB: ${suggestion.term}`);
-            await db.insertSearchTerm(suggestion.term).catch((err) => logger.err(err));
+        try {
+            const suggestions = await ios.suggest({ country: 'gb', term: token, throttle: 3 });
+            for (const suggestion of suggestions) {
+                logger.debug(`Inserting to DB: ${suggestion.term}`);
+                await db.insertSearchTerm(suggestion.term).catch((err) => logger.err(err));
+            }
+        } catch(err) {
+            await sleep(2 * 60 * 1000); // wait for two minutes
         }
     }
 }
@@ -89,6 +100,6 @@ const single = 'abcdefghijklmnopqrstuvwxyz '.split('');
 const double = cartesianProductChars(single, single);
 const triple = cartesianProductChars(single, single, single);
 
-const charTriples = single.concat(double.map( x => x.join(''))).concat(triple.map( x => x.join('')));
+const charTriples = single.concat(double).concat(triple);
 
 scrapeSuggestedWords(charTriples);
