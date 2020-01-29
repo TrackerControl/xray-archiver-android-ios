@@ -2,7 +2,7 @@
 const ios = require('app-store-scraper');
 
 const logger = require('../../util/logger');
-const DB = require('../../db/db');
+const DB = require('../../db/db_ios');
 const db = new DB('explorer');
 
 /**
@@ -76,10 +76,10 @@ function cartesianProductChars(...args) {
 async function scrapeSuggestedWords(startingTokens) {
     // TODO: return array of suggested search terms
     for (const token of startingTokens) {
-        const suggestions = await ios.suggest({ term: token, throttle: 10, requestOptions: { headers: { "X-Apple-Store-Front": "143444,24 t:native" } }  });
+        const suggestions = await ios.suggest({ term: token, requestOptions: { headers: { "X-Apple-Store-Front": "143444,24 t:native" } }  }, 3); // uses UK app store
         for (const suggestion of suggestions) {
-            logger.debug(`Inserting to DB: ${suggestion}`);
-            await db.insertSearchTerm(suggestion).catch((err) => logger.err(err));
+            logger.debug(`Inserting to DB: ${suggestion.term}`);
+            await db.insertSearchTerm(suggestion.term).catch((err) => logger.err(err));
         }
     }
 }
@@ -89,6 +89,6 @@ const single = 'abcdefghijklmnopqrstuvwxyz '.split('');
 const double = cartesianProductChars(single, single);
 const triple = cartesianProductChars(single, single, single);
 
-const charTriples = single.concat(double).concat(triple);
+const charTriples = single.concat(double).concat(single);
 
 scrapeSuggestedWords(charTriples);
