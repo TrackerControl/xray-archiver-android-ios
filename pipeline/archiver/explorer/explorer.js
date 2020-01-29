@@ -89,6 +89,6 @@ const single = 'abcdefghijklmnopqrstuvwxyz '.split('');
 const double = cartesianProductChars(single, single);
 const triple = cartesianProductChars(single, single, single);
 
-const charTriples = single.concat(double).concat(triple);
+const charTriples = single.concat(double.map( x => x.join(''))).concat(triple.map( x => x.join('')));
 
 scrapeSuggestedWords(charTriples);
