@@ -1,6 +1,6 @@
 /* eslint max-len: 0 */
 
-const config = require('/etc/xray/config.json');
+const config = require('/etc/xray/config_ios.json');
 const pg = require('pg');
 const logger = require('../util/logger');
 
@@ -519,7 +519,7 @@ class DB {
                     app.contentRating,
                     app.screenshots,
                     null, /* No video on iOS */
-                    app.releaseNotes,
+                    [app.releaseNotes],
                 ]);
             }
             await client.lquery('COMMIT');
