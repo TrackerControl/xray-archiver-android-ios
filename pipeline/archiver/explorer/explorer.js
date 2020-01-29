@@ -64,7 +64,8 @@ function flatten(arr) {
  */
 function cartesianProductChars(...args) {
     return args.reduce((prods, arr) =>
-        flatten(prods.map((prod) => arr.map((v) => prod.concat(v)))), [[]]);
+        flatten(prods.map((prod) => arr.map((v) => prod.concat(v)))), [[]])
+            .map( x => x.join('') ); // flatten
 }
 
 /**
@@ -89,6 +90,6 @@ const single = 'abcdefghijklmnopqrstuvwxyz '.split('');
 const double = cartesianProductChars(single, single);
 const triple = cartesianProductChars(single, single, single);
 
-const charTriples = single.concat(double.map( x => x.join(''))).concat(triple.map( x => x.join('')));
+const charTriples = single.concat(double).concat(triple);
 
 scrapeSuggestedWords(charTriples);
