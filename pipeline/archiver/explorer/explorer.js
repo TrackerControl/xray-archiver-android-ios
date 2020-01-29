@@ -76,7 +76,7 @@ function cartesianProductChars(...args) {
 async function scrapeSuggestedWords(startingTokens) {
     // TODO: return array of suggested search terms
     for (const token of startingTokens) {
-        const suggestions = await gplay.suggest({ region: 'uk', term: token, throttle: 10 });
+        const suggestions = await gplay.suggest({ country: 'uk', term: token, throttle: 10 });
         for (const suggestion of suggestions) {
             logger.debug(`Inserting to DB: ${suggestion}`);
             await db.insertSearchTerm(suggestion).catch((err) => logger.err(err));
