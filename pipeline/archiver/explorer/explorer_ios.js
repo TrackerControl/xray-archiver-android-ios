@@ -76,7 +76,7 @@ function cartesianProductChars(...args) {
 async function scrapeSuggestedWords(startingTokens) {
     // TODO: return array of suggested search terms
     for (const token of startingTokens) {
-        const suggestions = await ios.suggest({ term: token, requestOptions: { headers: { "X-Apple-Store-Front": "143444,24 t:native" } }  }, 3); // uses UK app store
+        const suggestions = await ios.suggest({ country: 'gb', term: token, throttle: 3 });
         for (const suggestion of suggestions) {
             logger.debug(`Inserting to DB: ${suggestion.term}`);
             await db.insertSearchTerm(suggestion.term).catch((err) => logger.err(err));

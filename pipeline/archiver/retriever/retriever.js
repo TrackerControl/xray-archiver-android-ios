@@ -4,7 +4,7 @@ const gplay = require('google-play-scraper');
 const logger = require('../../util/logger');
 const db = new (require('../../db/db'))('retriever');
 
-const region = 'uk';
+const region = 'gb';
 
 /*
  * Inserts app data into the db using db.js

@@ -445,12 +445,12 @@ class DB {
     /**
      *  Inserts App Data scraped from the google play store into the DB.
      */
-    async insertPlayApp(app, region) {
+    async insertAppleApp(app, region) {
         logger.debug('Inserting Dev Information. ');
         const devId = await this.insertDev({
             name: app.developer,
             id: app.developerId,
-            email: app.developerEmail,
+            email: app.developerWebsite, /* TODO: Change, not provided in iOS search request */
             site: app.developerWebsite,
         });
 
@@ -502,24 +502,24 @@ class DB {
                     'INSERT INTO playstore_apps VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, current_date)', [
                     verId,
                     app.title,
-                    app.summary,
+                    null, /* ToDo: Summary does not exist on iOS */
                     app.description,
                     app.url,
                     app.price,
                     app.free,
                     app.score,
                     app.reviews,
-                    app.genreId,
-                    app.familyGenreId,
-                    app.minInstalls,
-                    app.maxInstalls,
+                    app.primaryGenreId, /* ToDo: iOS apps can have multiple genres */
+                    null, /* ToDO: Family genre does not exist on iOS */
+                    null, /* ToDo: No install counts on iOS */
+                    null, /* ToDo: No install counts on iOS */
                     devId,
-                    new Date(Number(app.updated)),
-                    app.androidVersion,
+                    new Date(app.updated),
+                    app.requiredOsVersion,
                     app.contentRating,
                     app.screenshots,
-                    app.video,
-                    Array.isArray(app.recentChanges) ? app.recentChanges : [app.recentChanges],
+                    null, /* No video on iOS */
+                    app.releaseNotes,
                 ]);
             }
             await client.lquery('COMMIT');
