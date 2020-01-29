@@ -89,7 +89,8 @@ async function scrapeSuggestedWords(startingTokens) {
                 logger.debug(`Inserting to DB: ${suggestion.term}`);
                 await db.insertSearchTerm(suggestion.term).catch((err) => logger.err(err));
             }
-        } catch(err) {
+        } catch(err) {            
+            logger.debug(`pausing due to error while downloading: ${err}`);
             await sleep(2 * 60 * 1000); // wait for two minutes
         }
     }

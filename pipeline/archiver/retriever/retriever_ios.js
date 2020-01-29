@@ -52,6 +52,7 @@ function sleep(ms) {
             await fetchAppData(dbRow.search_term, 200, 3);
             await db.updateLastSearchedDate(dbRow.search_term);
         } catch(err) {
+            logger.debug(`pausing due to error while downloading: ${err}`);
             await sleep(2 * 60 * 1000); // wait for two minutes
         }
     }
