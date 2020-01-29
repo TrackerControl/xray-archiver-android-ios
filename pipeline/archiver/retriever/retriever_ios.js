@@ -42,7 +42,7 @@ async function fetchAppData(searchTerm, numberOfApps, perSecond) {
     const dbRows = await db.getStaleSearchTerms();
     for (const dbRow of dbRows) {
         logger.info(`searching for: ${dbRow.search_term}`);
-        await fetchAppData(dbRow.search_term, 50, 3); // 50 is max
+        await fetchAppData(dbRow.search_term, 200, 3);
         await db.updateLastSearchedDate(dbRow.search_term);
     }
 })();
