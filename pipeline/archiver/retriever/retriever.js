@@ -53,7 +53,12 @@ async function fetchAppData(searchTerm, numberOfApps, perSecond) {
     const dbRows = await db.getStaleSearchTerms();
     for (const dbRow of dbRows) {
         logger.info(`searching for: ${dbRow.search_term}`);
-        await fetchAppData(dbRow.search_term, 250, 10);
-        await db.updateLastSearchedDate(dbRow.search_term);
+        try {
+            await fetchAppData(dbRow.search_term, 250, 10);
+            await db.updateLastSearchedDate(dbRow.search_term);
+        } catch(err) {
+            logger.debug(`pausing due to error while downloading: ${err}`);
+            await sleep(2 * 60 * 1000); // wait for two minutes
+        }
     }
 })();
