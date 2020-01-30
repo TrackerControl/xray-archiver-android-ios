@@ -32,12 +32,11 @@ async function fetchAppData(searchTerm, numberOfApps, perSecond) {
         // fullDetail: true,
     });
 
-    for (const result of appSearchResults) {
-        logger.debug(`Requsting App Data for: ${result.appId}`);
-        await gplay.app(
-            { appId: result.appId }
-        )
-            .then(
+    await Promise.all( appSearchResults.map( result => {
+    	return gplay.app({
+	      appId: result.appId, 
+              throttle: perSecond
+	}).then(
                 async(appData) => {
                     logger.debug(`inserting ${appData.title} to the DB`);
                     await insertAppData(appData).catch((err) => logger.err(err));
@@ -45,8 +44,8 @@ async function fetchAppData(searchTerm, numberOfApps, perSecond) {
                 (err) => logger.err(
                     `Error Requesting appData for App: ${result.appId}. Error: ${err}`
                 )
-            );
-    }
+        );
+    }))
 }
 
 (async() => {
