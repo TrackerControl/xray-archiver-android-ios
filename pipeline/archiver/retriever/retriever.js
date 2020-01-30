@@ -48,6 +48,12 @@ async function fetchAppData(searchTerm, numberOfApps, perSecond) {
     }))
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 (async() => {
     const dbRows = await db.getStaleSearchTerms();
     for (const dbRow of dbRows) {
