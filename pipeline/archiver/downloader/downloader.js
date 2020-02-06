@@ -9,8 +9,24 @@ const logger = require('../../util/logger');
 const util = require('util');
 const bashExec = util.promisify(require('child_process').exec);
 const db = new (require('../../db/db'))('downloader');
+const nodemailer = require('nodemailer');
 
 let downloadLocations = [];
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: config.status_mailer.gmail_email,
+        pass: config.status_mailer.gmail_password
+    }
+});
+
+const mailOptions = {
+    from: config.status_mailer.gmail_email,
+    to: config.status_mailer.to,
+    subject: 'X-Ray Downloading stopped',
+    text: 'Please re-authenticate service at https://accounts.google.com/b/0/DisplayUnlockCaptcha'
+};
 
 async function ensureDirectoriesExist(directories) {
     const validDirectories = [];
@@ -68,7 +84,9 @@ async function getUUID(devicePath) {
     //      df -BG /dev/disk/by-uuid/5D3E-D824
     //      Filesystem     1G-blocks  Used Available Use% Mounted on
     //      /dev/sdc1            58G   14G       44G  24% /mnt/sanDiskUSB
-    //
+    if (devicePath = "overlay") // UUID does not exist for docker filesystem
+        return "docker"
+    
     try {
         const { stdout, stderr } = await bashExec(`sudo blkid -s UUID -o value ${devicePath}`);
         if (stderr) {
@@ -164,7 +182,7 @@ async function resolveAPKSaveInfo(appData) {
         `\nappId ${appData.app}`, `\nappStore ${appData.store}`,
         `\nregion ${appData.region}`, `\nversion ${appData.version}`);
 
-    const appSavePath = path.join(appsSaveDir.path, 'apps', appData.app,
+    const appSavePath = path.join(appsSaveDir.path, 'apps', ...appData.app.split("."),
         appData.store, appData.region, appData.version);
     logger.info(`App Save Directory formed: '${appSavePath}'`);
 
@@ -179,10 +197,17 @@ async function resolveAPKSaveInfo(appData) {
     };
 }
 
+async function checkError(data) {
+    if (data.includes('DisplayUnlockCaptcha')) {
+        await transporter.sendMail(mailOptions); 
+        process.exit()
+    }
+}
+
 function downloadApp(appData, appSavePath) {
     // Command line args for gplay cli
     const args = [
-        '-pd', appData.app,
+        '-vd', appData.app,
         '-f', appSavePath,
         '-c', config.system_config.downloader_credentials,
     ];
@@ -197,11 +222,13 @@ function downloadApp(appData, appSavePath) {
 
     downloadProcess.stdout.on('data', (data) => {
         const prefix = `'DL process ${downloadProcess.pid} stdout: `;
+        checkError(data);
         logger.debug(prefix + data.toString().replace(/\n/g, `\n${prefix}`));
     });
 
     downloadProcess.stderr.on('data', (data) => {
-        const prefix = `'DL process ${downloadProcess.pid} stdout: `;
+        const prefix = `'DL process ${downloadProcess.pid} stderr: `;
+        checkError(data);
         logger.warning(prefix + data.toString().replace(/\n/g, `\n${prefix}`));
     });
 
