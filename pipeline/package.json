@@ -17,6 +17,8 @@
     "minimist": "^1.2.0",
     "nodemailer": "^6.4.2",
     "pg": "^6.4.0",
-    "request": "^2.87.0"
+    "plist": "git+https://github.com/TooTallNate/plist.js.git",
+    "request": "^2.87.0",
+    "unzipper": "^0.10.8"
   }
 }

@@ -8,7 +8,7 @@ const path = require('path');
 const logger = require('../../util/logger');
 const util = require('util');
 const bashExec = util.promisify(require('child_process').exec);
-const db = new (require('../../db/db'))('downloader');
+const db = new (require('../../db/db_ios'))('downloader');
 
 const plistParser = require('plist');
 const unzip = require('unzipper');
@@ -231,9 +231,10 @@ async function main() {
         config.storage_config.apk_download_directories
     );
 
-    fs.readdir("/var/xray/ios/upload", (err, files) => {
-        files.forEach(file => {
-        if (!file.endsWith(".ipa"))
+    //fs.readdir("/var/xray/ios/upload", (err, files) => {
+    //    files.forEach(async filename => {
+        let filename = '/var/xray/ios/upload/Wificoin 2.1.35.ipa';
+        if (!filename.endsWith(".ipa"))
             return;
 
         let raw = '';
@@ -248,7 +249,13 @@ async function main() {
                    /*fs.writeFileSync('plists/' + plist.CFBundleIdentifier + '.plist', raw);
                    console.log('Parsed:', path.basename(filename));*/
 
-                   console.log(plist);
+                   let app = {                       
+                       'app': plist.CFBundleIdentifier,
+                       'version': plist.CFBundleShortVersionString,
+                       'store': 'ios',
+                       'region': 'gb'
+                   };
+
                    process.exit();
                } catch (e) {
                    console.log('Failure parsing:', filename);
@@ -268,8 +275,8 @@ async function main() {
                     `Error: ${err}`
                 );
             }
-        });
-    });
+    //    });
+    //});
 }
 
 main();
