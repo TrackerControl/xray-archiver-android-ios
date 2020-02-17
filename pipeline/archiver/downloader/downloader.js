@@ -201,6 +201,9 @@ async function checkError(data) {
     if (data.includes('DisplayUnlockCaptcha')) {
         await transporter.sendMail(mailOptions); 
         process.exit()
+    } else if (data.includes('docid')) {
+        fs.removeSync('/root/credentials.json'); 
+        //loggger.debug('Deleted saved token.');
     }
 }
 
@@ -222,13 +225,13 @@ function downloadApp(appData, appSavePath) {
 
     downloadProcess.stdout.on('data', (data) => {
         const prefix = `'DL process ${downloadProcess.pid} stdout: `;
-        checkError(data);
+        checkError(data.toString());
         logger.debug(prefix + data.toString().replace(/\n/g, `\n${prefix}`));
     });
 
     downloadProcess.stderr.on('data', (data) => {
         const prefix = `'DL process ${downloadProcess.pid} stderr: `;
-        checkError(data);
+        checkError(data.toString());
         logger.warning(prefix + data.toString().replace(/\n/g, `\n${prefix}`));
     });
 
