@@ -195,9 +195,9 @@ async function download(app) {
     }
 
     try {
-        //fs.renameSync(app.filename, appSavePath + app.app + '.ipa');
-        fs.writeFileSync(appSavePath + app.app + '.plist', app.plist);
-        fs.writeFileSync(appSavePath + app.app + '.plist.json', JSON.stringify(app.parsedPlist));
+        await fs.rename(app.filename, appSaveInfo.appSavePath + '/' + app.app + '.ipa');
+        await fs.writeFile(appSaveInfo.appSavePath + '/' + app.app + '.plist', app.plist);
+        await fs.writeFile(appSaveInfo.appSavePath + '/' + app.app + '.plist.json', JSON.stringify(app.parsedPlist));
     } catch (err) {
         logger.debug('Attempting to remove created dir');
         await fs.rmdir(appSaveInfo.appSavePath).catch(logger.warning);
@@ -233,19 +233,30 @@ async function main() {
         config.storage_config.apk_download_directories
     );
 
-    //fs.readdir("/var/xray/ios/upload", (err, files) => {
-    //    files.forEach(async filename => {
-        let filename = '/var/xray/ios/upload/Wificoin 2.1.35.ipa';
-        if (!filename.endsWith(".ipa"))
-            return;
+    let uploadPath = "/var/xray/apps/upload/";
 
+    for (;;) {
+
+    apps = [];
+
+    let files = fs.readdirSync(uploadPath);
+    
+        files.forEach(file => {
+            let filename = uploadPath + file;
+            if (!filename.endsWith(".ipa"))
+                return;
+        
+            apps.push(filename);
+        });
+
+    for (let filename of apps) {
         let raw = '';
-        fs.createReadStream(filename)
+        await new Promise( (resolve,reject) =>  {fs.createReadStream(filename)
             .pipe(unzip.ParseOne(/^Payload\/[^\/]+.app\/Info.plist$/))
             .on('data', (chunk) => {
                 raw += chunk;
             })
-            .on('end', () => {
+            .on('end', async () => {
                 try {
                    let plist = plistParser.parse(raw);
 
@@ -263,24 +274,27 @@ async function main() {
                            await download(app).catch((err) => {
                                throw err;
                            });
+                           return resolve(app);
                        } catch (err) {
                            logger.err(
                                `Error Downloading application with package name: ${app.app}.`,
                                `Error: ${err}`
                            );
+                           return reject(err);
                        }
-
-                   process.exit();
                } catch (e) {
                    console.log('Failure parsing:', filename);
+                   return reject(e);
                }            
             })
             .on('error', (e) => {
                 console.log('Error:', path.basename(filename), e);
+                return reject(e);
             });
+        });
+    }
 
-    //    });
-    //});
+    }
 }
 
 main();
