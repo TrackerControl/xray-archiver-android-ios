@@ -195,9 +195,9 @@ async function download(app) {
     }
 
     try {
-        await fs.rename(app.filename, appSaveInfo.appSavePath + '/' + app.app + '.ipa');
         await fs.writeFile(appSaveInfo.appSavePath + '/' + app.app + '.plist', app.plist);
         await fs.writeFile(appSaveInfo.appSavePath + '/' + app.app + '.plist.json', JSON.stringify(app.parsedPlist));
+        await fs.rename(app.filename, appSaveInfo.appSavePath + '/' + app.app + '.ipa');
     } catch (err) {
         logger.debug('Attempting to remove created dir');
         await fs.rmdir(appSaveInfo.appSavePath).catch(logger.warning);
