@@ -195,7 +195,9 @@ async function download(app) {
     }
 
     try {
-        await fs.rename(oldPath, appSavePath); // Move from /upload to /apps
+        //fs.renameSync(app.filename, appSavePath + app.app + '.ipa');
+        fs.writeFileSync(appSavePath + app.app + '.plist', app.plist);
+        fs.writeFileSync(appSavePath + app.app + '.plist.json', JSON.stringify(app.parsedPlist));
     } catch (err) {
         logger.debug('Attempting to remove created dir');
         await fs.rmdir(appSaveInfo.appSavePath).catch(logger.warning);
@@ -246,15 +248,27 @@ async function main() {
             .on('end', () => {
                 try {
                    let plist = plistParser.parse(raw);
-                   /*fs.writeFileSync('plists/' + plist.CFBundleIdentifier + '.plist', raw);
-                   console.log('Parsed:', path.basename(filename));*/
 
                    let app = {                       
                        'app': plist.CFBundleIdentifier,
                        'version': plist.CFBundleShortVersionString,
                        'store': 'ios',
-                       'region': 'gb'
+                       'region': 'gb',
+                       'plist': raw,
+                       'parsedPlist': plist,
+                       'filename': filename
                    };
+
+                   try {
+                           await download(app).catch((err) => {
+                               throw err;
+                           });
+                       } catch (err) {
+                           logger.err(
+                               `Error Downloading application with package name: ${app.app}.`,
+                               `Error: ${err}`
+                           );
+                       }
 
                    process.exit();
                } catch (e) {
@@ -265,16 +279,6 @@ async function main() {
                 console.log('Error:', path.basename(filename), e);
             });
 
-        try {
-                await download(app).catch((err) => {
-                    throw err;
-                });
-            } catch (err) {
-                logger.err(
-                    `Error Downloading application with package name: ${app.app}.`,
-                    `Error: ${err}`
-                );
-            }
     //    });
     //});
 }
