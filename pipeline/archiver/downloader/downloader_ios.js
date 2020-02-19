@@ -2,7 +2,7 @@
 Download process spawner
 */
 
-const config = require('/etc/xray/config.json');
+const config = require('/etc/xray/config_ios.json');
 const fs = require('fs-extra');
 const path = require('path');
 const logger = require('../../util/logger');
@@ -12,6 +12,8 @@ const db = new (require('../../db/db_ios'))('downloader');
 
 const plistParser = require('plist');
 const unzip = require('unzipper');
+
+const uploadPath = "/var/xray/apps/upload/";
 
 async function ensureDirectoriesExist(directories) {
     const validDirectories = [];
@@ -126,7 +128,7 @@ async function getAvailableDiskSpace(path) {
 async function getLocationWithLeastSpace() {
     logger.debug('Getting Save Location with the lowest amount of Space.');
     downloadLocations = await ensureDirectoriesExist(
-        config.storage_config.apk_download_directories
+        config.storage_config.app_download_directories
     );
     const dirSpaces = [];
     for (const dir of downloadLocations) {
@@ -158,7 +160,7 @@ async function getLocationWithLeastSpace() {
     })[0];
 }
 
-async function resolveAPKSaveInfo(appData) {
+async function resolveAppSaveInfo(appData) {
     const appsSaveDir = await getLocationWithLeastSpace();
     const filesystem = await getPathFileSystem(appsSaveDir.path);
     const UUID = await getUUID(filesystem);
@@ -182,13 +184,13 @@ async function resolveAPKSaveInfo(appData) {
     };
 }
 
-async function download(app) {
-    logger.info('Starting download attempt for:', app.app);
-    // Could be move to the call to DL app. but this is where the whole DL process starts.
-    db.updatedDlAttempt(app);
+async function move(app) {
+    logger.info('Starting moving attempt for:', app.app);
+
+    db.updatedDlAttempt(app); // update DB that iOS app was attempted to be downloaded
     let appSaveInfo;
     try {
-        appSaveInfo = await resolveAPKSaveInfo(app);
+        appSaveInfo = await resolveAppSaveInfo(app);
     } catch (err) {
         await new Promise((resolve) => setTimeout(resolve, 6000));
         return Promise.reject(`Did not have access to resolve dir: ${err.message}`);
@@ -201,7 +203,7 @@ async function download(app) {
     } catch (err) {
         logger.debug('Attempting to remove created dir');
         await fs.rmdir(appSaveInfo.appSavePath).catch(logger.warning);
-        return Promise.reject(`Downloading failed with err: ${err}`);
+        return Promise.reject(`Moving failed with err: ${err}`);
     }
 
     try {
@@ -220,7 +222,7 @@ async function download(app) {
             });
         }
     } catch (err) {
-        // TODO: Maybe do something else? Destroying process as we have apks that
+        // TODO: Maybe do something else? Destroying process as we have apps that
         // don't exist in db...
         return Promise.reject('Err when updated the downloaded app', err);
     }
@@ -230,70 +232,72 @@ async function download(app) {
 async function main() {
     // Ensure that directory structures exist.
     downloadLocations = await ensureDirectoriesExist(
-        config.storage_config.apk_download_directories
+        config.storage_config.app_download_directories
     );
 
-    let uploadPath = "/var/xray/apps/upload/";
-
+    // loops over all recently downloaded iOS apps (from iOS crawler), and integrates them into the x-ray filesystem
     for (;;) {
+        let filenames = [];
 
-    apps = [];
-
-    let files = fs.readdirSync(uploadPath);
-    
+        let files = fs.readdirSync(uploadPath);        
         files.forEach(file => {
             let filename = uploadPath + file;
             if (!filename.endsWith(".ipa"))
-                return;
-        
-            apps.push(filename);
+                return;        
+            filenames.push(filename);
         });
 
-    for (let filename of apps) {
-        let raw = '';
-        await new Promise( (resolve,reject) =>  {fs.createReadStream(filename)
-            .pipe(unzip.ParseOne(/^Payload\/[^\/]+.app\/Info.plist$/))
-            .on('data', (chunk) => {
-                raw += chunk;
-            })
-            .on('end', async () => {
-                try {
-                   let plist = plistParser.parse(raw);
+        for (let filename of filenames) {
+            let raw = ''; // stores the iOS manifest file in plist format, extracted from the ipa
 
-                   let app = {                       
-                       'app': plist.CFBundleIdentifier,
-                       'version': plist.CFBundleShortVersionString,
-                       'store': 'ios',
-                       'region': 'gb',
-                       'plist': raw,
-                       'parsedPlist': plist,
-                       'filename': filename
-                   };
+            // use promise to be able to wait for end of data operation
+            await new Promise((resolve, reject) => {
+                fs.createReadStream(filename)
 
-                   try {
-                           await download(app).catch((err) => {
+                .pipe(unzip.ParseOne(/^Payload\/[^\/]+.app\/Info.plist$/))
+
+                .on('data', (chunk) => {
+                    raw += chunk;
+                })
+
+                .on('end', async () => {
+                    try {
+                       let plist = plistParser.parse(raw);
+
+                       let app = {                       
+                           'app': plist.CFBundleIdentifier,
+                           'version': plist.CFBundleShortVersionString,
+                           'store': 'ios',
+                           'region': 'gb',
+                           'plist': raw,
+                           'parsedPlist': plist,
+                           'filename': filename
+                       };
+
+                       try {
+                           await move(app).catch((err) => {
                                throw err;
                            });
                            return resolve(app);
                        } catch (err) {
                            logger.err(
-                               `Error Downloading application with package name: ${app.app}.`,
+                               `Error Moving application with package name: ${app.app}.`,
                                `Error: ${err}`
                            );
                            return reject(err);
                        }
-               } catch (e) {
-                   console.log('Failure parsing:', filename);
-                   return reject(e);
-               }            
-            })
-            .on('error', (e) => {
-                console.log('Error:', path.basename(filename), e);
-                return reject(e);
-            });
-        }).catch(err => console.log("Caught error. Continuing.."));
-    }
+                   } catch (err) {
+                       logger.err(`Failure parsing ${filename}: ${err}`);
+                       return reject(err);
+                   }            
+                })
 
+                .on('error', (err) => {
+                    logger.err(`Error ${filename}: ${err}`);
+                    return reject(err);
+                });
+            }).catch(err => console.log("Caught error. Continuing.."));
+        }
     }
 }
 
