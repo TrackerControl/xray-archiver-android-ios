@@ -291,7 +291,7 @@ async function main() {
                 console.log('Error:', path.basename(filename), e);
                 return reject(e);
             });
-        });
+        }).catch(err => console.log("Caught error. Continuing.."));
     }
 
     }
