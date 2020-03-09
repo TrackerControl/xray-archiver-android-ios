@@ -298,6 +298,9 @@ async function main() {
                 });
             }).catch(err => console.log("Caught error. Continuing.."));
         }
+    
+        console.log('All processed. Waiting for 10s.');
+        await new Promise((resolve) => setTimeout(resolve, 10000));
     }
 }
 
