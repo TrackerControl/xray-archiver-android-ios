@@ -4,6 +4,20 @@ const config = require('/etc/xray/config.json');
 const pg = require('pg');
 const logger = require('../util/logger');
 
+class SchemaClient extends pg.Client {
+    getStartupConf() {
+        const options = {
+        	search_path: config.db_schema
+        };
+        return {
+          ...super.getStartupConf(),
+          ...options,
+        };
+
+    	return super.getStartupConf();
+	}
+}
+
 class DB {
     /**
      *  DB Class constructor - Initialises all config for pg db connections
@@ -16,6 +30,7 @@ class DB {
         dbCfg.password = config[module].db.password;
         dbCfg.max = 10;
         dbCfg.idleTimeoutMillis = 30000;
+        dbCfg.Client = SchemaClient;
 
         // this initializes a connection pool
         // it will keep idle connections open for 30 seconds

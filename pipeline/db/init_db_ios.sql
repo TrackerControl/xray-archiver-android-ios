@@ -4,14 +4,8 @@
 --
 -----
 
-CREATE SCHEMA android;
-set search_path = android;
-
-DO $$
-BEGIN
-EXECUTE '
-ALTER DATABASE ' || current_database() || ' SET SEARCH_PATH TO android';
-END; $$;
+CREATE SCHEMA ios;
+set search_path = ios;
 
 begin;
 
@@ -328,12 +322,12 @@ commit;
 -----
 begin;
 
-GRANT USAGE ON SCHEMA android TO explorer;
-GRANT USAGE ON SCHEMA android TO retriever;
-GRANT USAGE ON SCHEMA android TO downloader;
-GRANT USAGE ON SCHEMA android TO analyzer;
-GRANT USAGE ON SCHEMA android TO apiserv;
-GRANT USAGE ON SCHEMA android TO suggester;
+GRANT USAGE ON SCHEMA ios TO explorer;
+GRANT USAGE ON SCHEMA ios TO retriever;
+GRANT USAGE ON SCHEMA ios TO downloader;
+GRANT USAGE ON SCHEMA ios TO analyzer;
+GRANT USAGE ON SCHEMA ios TO apiserv;
+GRANT USAGE ON SCHEMA ios TO suggester;
 
 grant insert, select on search_terms to explorer;
 
