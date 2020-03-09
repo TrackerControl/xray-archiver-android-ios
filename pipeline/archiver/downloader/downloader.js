@@ -9,24 +9,8 @@ const logger = require('../../util/logger');
 const util = require('util');
 const bashExec = util.promisify(require('child_process').exec);
 const db = new (require('../../db/db'))('downloader');
-const nodemailer = require('nodemailer');
 
 let downloadLocations = [];
-
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: config.status_mailer.gmail_email,
-        pass: config.status_mailer.gmail_password
-    }
-});
-
-const mailOptions = {
-    from: config.status_mailer.gmail_email,
-    to: config.status_mailer.to,
-    subject: 'X-Ray Downloading stopped',
-    text: 'Please re-authenticate service at https://accounts.google.com/b/0/DisplayUnlockCaptcha'
-};
 
 async function ensureDirectoriesExist(directories) {
     const validDirectories = [];
