@@ -33,7 +33,7 @@ node pipeline/archiver/retriever/retriever[_ios].js
 
 ### App Downloader
 
-The ``App Downloader` fetches Android and Apple app files using the app data that has been collected by the `App Metadata Retriever`.
+The `App Downloader` fetches Android and Apple app files using the app data that has been collected by the `App Metadata Retriever`.
 
 The script utilises the `GPlayCli` for connecting to the app stores for downloading app files.
 
@@ -70,7 +70,7 @@ An API server has been developed to allow others to interface with the data coll
 
 ## Installation (on Ubuntu 18.04)
 
-- Install npm: 
+- Install npm
 
 ```bash
 sudo apt install nodejs npm
@@ -87,7 +87,7 @@ echo 'export PATH=/usr/lib/go-1.11/bin:$PATH' >> ~/.bashrc
 echo 'export GOPATH=$HOME/gocode' >> ~/.bashrc 
 ```
 
-- Install postgresql and create xray  database
+- Install postgresql and create xray database
 
 ```bash
 sudo apt install postgresql
@@ -95,13 +95,15 @@ sudo -u postgres psql -c "CREATE DATABASE xraydb"
 sudo -u postgres psql xraydb < init_db.sql
 ```
 
+- You may have to change your database permissions in your `/etc/postgresql/*/main/pg_hba.conf`
+
 - Install node packages
 
 ```bash
 npm install -g google-play-scraper pg
 ```
 
-- Create configuration files (and fill in your details)
+- Create xray configuration files (and fill in your details)
 
 ```bash
 sudo mkdir /etc/xray
@@ -115,15 +117,14 @@ go get github.com/OxfordHCC/xray-archiver-android-ios/pipeline
 $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/scripts/install.sh
 ```
 
-- It might be necessary to change the `/etc/postgresql/*/main/pg_hba.conf` file.
 - Set up token dispenser
 
 ```bash
 git clone https://github.com/kasnder/python-token-dispenser
 ```
 
-- Edit: `passwords/passwords.txt` and add to your gplaycli.conf
-- Install modified gplaycli:
+- Now, put Goole credentials into your `python-token-dispenser/passwords/passwords.txt`
+- Install modified gplaycli
 
 ```bash
 git clone https://github.com/kasnder/gplaycli && pip3 install ./gplaycli/
