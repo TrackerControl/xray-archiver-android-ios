@@ -1,3 +1,18 @@
+-----
+--
+--  Table Creation
+--
+-----
+
+CREATE SCHEMA android;
+set search_path = android;
+
+DO $$
+BEGIN
+EXECUTE '
+ALTER DATABASE ' || current_database() || ' SET SEARCH_PATH TO android';
+END; $$;
+
 begin;
 
 create table apps(
@@ -11,14 +26,31 @@ create table app_versions(
   store                     text                     not null,
   region                    text                     not null,
   version                   text                     not null,
+  apk_location              text                             , -- Path to the APK for this version of the App.
+  apk_filesystem            text                             ,
+  apk_filesystem_name       text                             ,
+  apk_location_root         text                             ,
+  apk_location_uuid         text                             , -- UUID of the device that this APK is stored on.
+  apk_server_location       text                             , -- Really an indicator of what VM the APK is stored on.
   screen_flags               int                             ,
   downloaded                bool                     not null,
+  apk_archived              bool                     default false,
+  has_apk_stored            bool                     default false,
   analyzed                  bool                     not null,
   last_dl_attempt      timestamp                             ,
   icon                      text                             ,
   uses_reflect              bool                             ,
   last_analyze_attempt timestamp                             ,
   last_alt_checked     timestamp
+);
+
+create table ad_hoc_analysis(
+  id                    serial        not null primary key,
+  app_id                int           not null references app_versions(id),
+  analyser_name         text          not null,
+  analysis_by           text          not null default 'anon',
+  analysis_date         timestamp     not null default now(),
+  results               json          not null
 );
 
 create table developers(
@@ -30,15 +62,15 @@ create table developers(
 );
 
 create table alt_apps(
-   app_id                text             references apps(id) not null,
-   alt_app_title         text                                 not null,
-   alt_to_url            text                                 not null,
-   g_play_url            text                                         ,
-   g_play_id             text                                         ,
-   icon_url              text                                         ,
-   official_site_url     text                                         ,
-   is_scraped            bool                                 not null,
-   primary key (app_id, alt_app_title)
+  app_id                text             references apps(id) not null,
+  alt_app_title         text                                 not null,
+  alt_to_url            text                                 not null,
+  g_play_url            text                                         ,
+  g_play_id             text                                         ,
+  icon_url              text                                         ,
+  official_site_url     text                                         ,
+  is_scraped            bool                                 not null,
+  primary key (app_id, alt_app_title)
 );
 
 create table playstore_apps(
@@ -129,12 +161,179 @@ create table company_domains (
   primary key(company, domain)
 );
 
+--
+--    Company Association Information
+--
+
+create table iotDevices(
+  id                      serial    not null primary key
+);
+
+create table websites(
+  id                      serial    not null  primary key
+);
+
+--
+--    Names of companies associated with an App, IoT Device, or website.
+--
+
+create table companyNames(
+  id                      serial      not null    primary key,
+  company_name            text        not null    unique
+);
+
+--
+--    All apps, IoT devices, and websites associated with a given company.
+--
+
+create table companyAssociations(
+  id                      serial      not null    primary key,
+  company_name            text        not null    unique references companyNames(company_name),
+  app_associations        int[],
+  iot_device_associations int[],
+  website_associations    int[]
+);
+
+create table companyAppAssociations(
+  id                      serial      not null    ,
+  company_name            text        not null    references companyNames(company_name),
+  associated_app          serial      not null    references app_versions(id),
+  primary key (company_name, associated_app)
+);
+
+create table companyIoTDeviceAssociations(
+  id                      serial      not null    ,
+  company_name            text        not null    references companyNames(company_name),
+  associated_iot_device   serial      not null    references iotDevices(id),
+  primary key (company_name, associated_iot_device)
+);
+
+create table companyWebsiteAssociations(
+  id                      serial      not null    ,
+  company_name            text        not null    references companyNames(company_name),
+  associated_website      serial      not null    references websites(id),
+  primary key (company_name, associated_website)
+);
+
+commit;
+
+-----
+--
+--  Function Creation
+--
+-----
+begin;
+create or replace function createCompanyAssociationRecord() returns trigger as
+  $BODY$
+    begin
+      insert into companyAssociations(
+        company_name,
+        app_associations,
+        iot_device_associations,
+        website_associations
+      ) values (
+        new.company_name,
+        array[]::integer[],
+        array[]::integer[],
+        array[]::integer[]
+      );
+      return new;
+    end;
+  $BODY$
+language plpgsql;
+
+
+create or replace function updateCompanyAppAssociations() returns trigger as
+  $BODY$
+    begin
+      update companyAssociations
+        set app_associations = app_associations || new.associated_app
+          where company_name = new.company_name;
+      return new;
+    end;
+  $BODY$
+language plpgsql;
+
+create or replace function updateCompanyWebsiteAssociations() returns trigger as
+  $BODY$
+    begin
+      update companyAssociations
+        set website_associations = website_associations || new.associated_website
+          where company_name = new.company_name;
+      return new;
+    end;
+  $BODY$
+language plpgsql;
+
+create or replace function updateCompanyIoTDeviceAssociations() returns trigger as
+  $BODY$
+    begin
+      update companyAssociations
+        set iot_device_associations = iot_device_associations || new.associated_iot_device
+          where company_name = new.company_name;
+      return new;
+    end;
+  $BODY$
+language plpgsql;
+commit;
+
+-----
+--
+--  Trigger Creation
+--
+-----
+begin;
+create trigger onCompanyNameInsert
+  after insert on companyNames
+    for each row
+      execute procedure createCompanyAssociationRecord();
+
+create trigger onCompanyAppAssociationInsert
+  after insert on companyAppAssociations
+    for each row
+      execute procedure updateCompanyAppAssociations();
+
+create trigger onCompanyWebsiteAssociationInsert
+  after insert on companyWebsiteAssociations
+    for each row
+      execute procedure updateCompanyWebsiteAssociations();
+
+create trigger onCompanyIoTDeviceAssociationInsert
+  after insert on companyIoTDeviceAssociations
+    for each row
+      execute procedure updateCompanyIoTDeviceAssociations();
+
+commit;
+
+-----
+--
+--  Role Creation
+--
+-----
+begin;
+
 create user explorer;
 create user retriever;
 create user downloader;
 create user analyzer;
 create user apiserv;
 create user suggester;
+
+commit;
+
+-----
+--
+--  Role Permissions
+--
+-----
+begin;
+
+GRANT USAGE ON SCHEMA android TO explorer;
+GRANT USAGE ON SCHEMA android TO retriever;
+GRANT USAGE ON SCHEMA android TO downloader;
+GRANT USAGE ON SCHEMA android TO analyzer;
+GRANT USAGE ON SCHEMA android TO apiserv;
+GRANT USAGE ON SCHEMA android TO suggester;
 
 grant insert, select on search_terms to explorer;
 
@@ -148,6 +347,7 @@ grant usage on developers_id_seq to retriever;
 
 grant select, update on app_versions to downloader;
 grant select on playstore_apps to downloader;
+grant select on apps to downloader;
 
 grant select, insert, update on apps to analyzer;
 grant select, insert, update on app_versions to analyzer;
@@ -178,3 +378,58 @@ grant select, update on app_versions to suggester;
 grant select on playstore_apps to suggester;
 
 commit;
+
+-- Query to migrate existing analysis into the ad_hoc_analysis, complete with json!
+-- insert into ad_hoc_analysis (app_id, analyser_name, analysis_by, results)
+--   select  coalesce(hosts_id, perms_id, packages_id),
+--           'Golang analyser',
+--           'A.D.S Team',
+--           row_to_json(q)
+--   from (
+--     select *,
+--       app_hosts.id as hosts_id,
+--       app_packages.id as packages_id,
+--       app_perms.id as perms_id
+--     from
+--       app_hosts
+--     full outer join
+--       app_perms
+--     on
+--       app_hosts.id = app_perms.id
+--     full outer join
+--       app_packages
+--     on
+--       app_hosts.id = app_packages.id
+--     and
+--       app_perms.id = app_packages.id
+--   ) as q;
+
+
+
+
+
+
+
+insert into ad_hoc_analysis (app_id, analyser_name, analysis_by, results)
+  select  coalesce(hosts_id, perms_id, packages_id),
+          'Golang analyser',
+          'A.D.S Team',
+          row_to_json(q)
+  from (
+    select *,
+      app_hosts.id as hosts_id,
+      app_packages.id as packages_id,
+      app_perms.id as perms_id
+    from
+      app_hosts
+    full outer join
+      app_perms
+    on
+      app_hosts.id = app_perms.id
+    full outer join
+      app_packages
+    on
+      app_hosts.id = app_packages.id
+    and
+      app_perms.id = app_packages.id
+  ) as q;

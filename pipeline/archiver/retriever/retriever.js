@@ -1,16 +1,13 @@
 
 const gplay = require('google-play-scraper');
-const _ = require('lodash');
-const Promise = require('bluebird');
 
 const logger = require('../../util/logger');
 const db = new (require('../../db/db'))('retriever');
 
-const region = 'uk';
+const region = 'gb';
 
-/**
+/*
  * Inserts app data into the db using db.js
- * @param {*The app data json that is to be inserted into the databae.} appData
  */
 function insertAppData(appData) {
     // Checking version data - correct version to update date
@@ -27,35 +24,46 @@ function insertAppData(appData) {
 
 // TODO Add Permission list to app Data JSON
 async function fetchAppData(searchTerm, numberOfApps, perSecond) {
-    const appDatas = await gplay.search({
+    const appSearchResults = await gplay.search({
         term: searchTerm,
         num: numberOfApps,
         throttle: perSecond,
         country: region,
-        fullDetail: true,
+        // fullDetail: true,
     });
 
-    // TODO: Move this to DB.
-    return Promise.all(_.map(appDatas, async(appData) => {
-        logger.debug(`inserting ${appData.title} to the DB`);
+    await Promise.all( appSearchResults.map( result => {
+    	return gplay.app({
+	      appId: result.appId, 
+              throttle: perSecond
+	}).then(
+                async(appData) => {
+                    logger.debug(`inserting ${appData.title} to the DB`);
+                    await insertAppData(appData).catch((err) => logger.err(err));
+                },
+                (err) => logger.err(
+                    `Error Requesting appData for App: ${result.appId}. Error: ${err}`
+                )
+        );
+    }))
+}
 
-        const appExists = await db.doesAppExist(appData).catch(logger.err);
-        if (!appExists) {
-            return insertAppData(appData).catch((err) => logger.err(err));
-        } else {
-            logger.debug('App already existing', appData.appId);
-            return Promise.reject('App Already Exists');
-        }
-    }));
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 (async() => {
     const dbRows = await db.getStaleSearchTerms();
-    Promise.each(dbRows, async(dbRow) => {
+    for (const dbRow of dbRows) {
         logger.info(`searching for: ${dbRow.search_term}`);
-        return fetchAppData(dbRow.search_term, 60, 1)
-            .then(await db.updateLastSearchedDate(dbRow.search_term)
-                .catch(logger.err))
-            .catch(logger.err);
-    });
+        try {
+            await fetchAppData(dbRow.search_term, 250, 10);
+            await db.updateLastSearchedDate(dbRow.search_term);
+        } catch(err) {
+            logger.debug(`pausing due to error while downloading: ${err}`);
+            await sleep(10 * 1000); // wait for ten seconds
+        }
+    }
 })();

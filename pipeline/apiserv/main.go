@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -294,6 +295,124 @@ func fetchIDEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func companyNamesEndpoint(w http.ResponseWriter, r *http.Request) {
+	mime := r.Header.Get("Accept")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	//Check input
+	if r.Method == "POST" || r.Method == "GET" {
+		// mime = mimeCheck(mime)
+		// if mime == "" {
+		// 	writeErr(w, mime, http.StatusNotAcceptable, "not_acceptable", "This API only supports JSON at the moment.")
+		// 	return
+		// }
+
+		companyNames, err := db.SelectCompanyNames()
+
+		if err != nil {
+			errMessage := db.APIRequestError{
+				ErrorType:    "DB_ERROR",
+				ErrorMessage: err.Error(),
+				APIRequest:   "Company Names Endpoint"}
+			writeData(w, mime, http.StatusInternalServerError, errMessage)
+		}
+
+		writeData(w, mime, http.StatusOK, companyNames)
+
+	} else {
+		writeErr(w, mime, http.StatusBadRequest, "bad_method", "You must POST or GET this endpoint!")
+	}
+}
+
+// CompanyAppAssociations allows requests for a list of app ids associated with a given company name
+func companyAppAssociations(w http.ResponseWriter, r *http.Request) {
+	mime := r.Header.Get("Accept")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	//Check input
+	if r.Method == "POST" || r.Method == "GET" {
+		mime = mimeCheck(mime)
+		if mime == "" {
+			writeErr(w, mime, http.StatusNotAcceptable, "not_acceptable", "This API only supports JSON at the moment.")
+			return
+		}
+
+		//XXX:Assuming all endpoints have a form to process...
+		err := r.ParseForm()
+		if err != nil {
+			writeErr(w, mime, http.StatusBadRequest, "bad_form", "Error parsing form input: %s", err.Error())
+			return
+		}
+		for name, val := range r.Form {
+			switch name {
+
+			case "name":
+				util.Log.Debug("Name form param found.")
+				util.Log.Debug("Request For Apps associated with: %s", val)
+
+				association, err := db.GetCompanyAssocations(val[0])
+
+				if err != nil {
+					util.Log.Debug("Error Selecting company App Assocations for company: %s", val[0], err)
+					requestError := db.APIRequestError{ErrorType: "DB_ERROR", ErrorMessage: err.Error(), APIRequest: "Company Associations"}
+					writeData(w, mime, http.StatusInternalServerError, requestError)
+					return
+				}
+
+				writeData(w, mime, http.StatusOK, association)
+			}
+		}
+
+	} else {
+		writeErr(w, mime, http.StatusBadRequest, "bad_method", "You must POST or GET this endpoint!")
+	}
+}
+
+// appCompanyAssociations allows requests for a list of company names associated with a given AppID
+func appCompanyAssociations(w http.ResponseWriter, r *http.Request) {
+	mime := r.Header.Get("Accept")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	//Check input
+	if r.Method == "POST" || r.Method == "GET" {
+		mime = mimeCheck(mime)
+		if mime == "" {
+			writeErr(w, mime, http.StatusNotAcceptable, "not_acceptable", "This API only supports JSON at the moment.")
+			return
+		}
+
+		//XXX:Assuming all endpoints have a form to process...
+		err := r.ParseForm()
+		if err != nil {
+			writeErr(w, mime, http.StatusBadRequest, "bad_form", "Error parsing form input: %s", err.Error())
+			return
+		}
+		for name, val := range r.Form {
+			switch name {
+
+			case "appID":
+				util.Log.Debug("Name form param found.")
+				util.Log.Debug("Request For Copmany Names associated with App ID: %d", val)
+
+				appID, err := strconv.ParseInt(val[0], 10, 64)
+				associations, err := db.GetAppVersionAssociations(appID)
+
+				if err != nil {
+					util.Log.Debug("Error Selecting App Company Assocations for AppID: %d", val[0], err)
+					requestError := db.APIRequestError{ErrorType: "DB_ERROR", ErrorMessage: err.Error(), APIRequest: "Company Associations"}
+					writeData(w, mime, http.StatusInternalServerError, requestError)
+					return
+				}
+
+				writeData(w, mime, http.StatusOK, associations)
+			}
+		}
+
+	} else {
+		writeErr(w, mime, http.StatusBadRequest, "bad_method", "You must POST or GET this endpoint!")
+	}
+}
+
 func appsEndpoint(w http.ResponseWriter, r *http.Request) {
 	mime := r.Header.Get("Accept")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -568,15 +687,23 @@ func init() {
 
 func main() {
 
-	http.Handle("/", http.FileServer(http.Dir(util.Cfg.AppDir)))
+	for _, dir := range util.Cfg.StorageConfig.APKDownloadDirectories {
+		http.Handle(path.Join("/", dir.Name), http.FileServer(http.Dir(dir.Path)))
+	}
 
 	http.HandleFunc("/api/apps", appsEndpoint)
 	http.HandleFunc("/api/alt/", altAppsEndpoint)
 	http.HandleFunc("/api/fetch", fetchIDEndpoint)
+	http.HandleFunc("/api/hosts", fetchHosts)
+
 	http.HandleFunc("/api/stats/genre_host_averages", genreHostAvgEndpoint)
 	http.HandleFunc("/api/stats/app_company_freq", appCompanyFreqEndpoint)
 	http.HandleFunc("/api/stats/app_type_freq", appTypeFreqEndpoint)
 	http.HandleFunc("/api/stats/company_genre_coverage", companyGenreCoverageEndpoint)
-	http.HandleFunc("/api/hosts", fetchHosts)
+
+	http.HandleFunc("/api/companies/names", companyNamesEndpoint)
+	http.HandleFunc("/api/companies/associations", companyAppAssociations)
+	http.HandleFunc("/api/apps/associations", appCompanyAssociations)
+
 	panic(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }

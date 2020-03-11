@@ -4,6 +4,20 @@ const config = require('/etc/xray/config.json');
 const pg = require('pg');
 const logger = require('../util/logger');
 
+class SchemaClient extends pg.Client {
+    getStartupConf() {
+        const options = {
+        	search_path: config.db_schema
+        };
+        return {
+          ...super.getStartupConf(),
+          ...options,
+        };
+
+    	return super.getStartupConf();
+	}
+}
+
 class DB {
     /**
      *  DB Class constructor - Initialises all config for pg db connections
@@ -16,6 +30,7 @@ class DB {
         dbCfg.password = config[module].db.password;
         dbCfg.max = 10;
         dbCfg.idleTimeoutMillis = 30000;
+        dbCfg.Client = SchemaClient;
 
         // this initializes a connection pool
         // it will keep idle connections open for 30 seconds
@@ -151,6 +166,49 @@ class DB {
         }
     }
 
+    async updateServerLocation(versionID, serverLocation) {
+        try {
+            await this.query(
+                'update app_versions set apk_server_location = $1 where id = $2',
+                [serverLocation, versionID]
+            );
+        } catch (err) {
+            logger.err(
+                `Unable to set apk_server_location to ${serverLocation} for
+                app version: ${versionID}. Error: ${err}`
+            );
+        }
+    }
+
+    async updateAppVersionHasAPKFlag(versionID, hasAPK) {
+        try {
+            await this.query(
+                'update app_versions set has_apk_stored = $1 where id = $2',
+                [hasAPK, versionID]
+            );
+        } catch (err) {
+            logger.err(
+                `Unable to set hasAPK flag to ${hasAPK ? 'True' : 'False'}
+                for app version ID: ${versionID}. Error: ${err}`
+            );
+        }
+    }
+
+    async updateAppVersionAPKLocation(versionID, apkLocation) {
+        try {
+            await this.query(
+                'update app_versions set apk_location = $1 where id = $2',
+                [apkLocation, versionID]
+            );
+        } catch (err) {
+            logger.err(
+                `Unable to set apk_location for version ID:${versionID}.
+                Desired location string: ${apkLocation}.
+                Error: ${err}`
+            );
+        }
+    }
+
     async getAppsToFindAltsForThatHaventYetHadThemFound(limit) {
         try {
             const res = await this.query(
@@ -186,11 +244,44 @@ class DB {
         }
     }
 
-    async updateDownloadedApp(app) {
+    async updateDownloadedApp(
+        app,
+        appSaveInfo={
+            appSavePath: '',
+            appSaveFS: '',
+            appSaveFSName: '',
+            appSavePathRoot: '',
+            appSaveUUID: '',
+        },
+        serverLocation='localhost') {
         try {
-            await this.query('UPDATE app_versions SET downloaded=True WHERE app = $1', [app.app]);
+            await this.query(
+                `
+                UPDATE
+                    app_versions
+                SET
+                    downloaded=True,
+                    has_apk_stored=True,
+                    apk_location        =   $1,
+                    apk_server_location =   $2,
+                    apk_filesystem      =   $3,
+                    apk_filesystem_name =   $4,
+                    apk_location_root   =   $5,
+                    apk_location_uuid   =   $6
+                WHERE
+                    app                 =   $7`,
+                [
+                    appSaveInfo.appSavePath,
+                    serverLocation,
+                    appSaveInfo.appSaveFS,
+                    appSaveInfo.appSaveFSName,
+                    appSaveInfo.appSavePathRoot,
+                    appSaveInfo.appSaveUUID,
+                    app.app,
+                ]
+            );
         } catch (err) {
-            logger.err('Error updaing app version download flag:', err);
+            logger.err('Error updating app version flags:', err);
             throw err;
         }
     }
@@ -232,7 +323,7 @@ class DB {
     }
 
     /**
-     * 
+     *
      */
     async insertCompanyDomain(company, domain, type) {
         logger.debug(`Inserting - Company: ${company}  Domain: ${domain}`);
@@ -346,6 +437,26 @@ class DB {
         }
     }
 
+    async selectAppVersion(appId) {
+        try {
+            const res = await this.query('select * from app_versions where id = $1', [appId]);
+            return res.rows[0];
+        } catch (err) {
+            logger.err(`Unable to select App Version with ID: ${appId}. Error: ${err}`);
+            throw err;
+        }
+    }
+
+    async selectAllAppPackageNameVersionNumbers() {
+        try {
+            const res = await this.query('select * from apps');
+            return res.rows;
+        } catch (err) {
+            logger.err(`Error selecting apps and version id's. Errrrrror: ${err}`);
+            throw err;
+        }
+    }
+
     /**
      *  Inserts App Data scraped from the google play store into the DB.
      */
@@ -385,23 +496,25 @@ class DB {
                 if (!appExists) {
                     await client.lquery('INSERT INTO apps VALUES ($1, $2)', [app.appId, []]);
                 }
+
+                // insert as a new version of the app
                 const res = await client.lquery(
                     'INSERT INTO app_versions(app, store, region, version, downloaded, last_dl_attempt, analyzed )' +
                     'VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id', [app.appId, 'play', region, app.version, 0, 'epoch', 0]
                 );
                 verId = res.rows[0].id;
 
+                // update apps table to have the new version in the app version array.
                 await client.lquery('UPDATE apps SET versions=versions || $1 WHERE id = $2', [
                     [verId], app.appId,
                 ]);
-            }
+            
+                if (!app.price && app.price != 0) {
+                    app.price = 0;
+                }
 
-            if (!app.price && app.price != 0) {
-                app.price = 0;
-            }
-
-            await client.lquery(
-                'INSERT INTO playstore_apps VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, current_date)', [
+                await client.lquery(
+                    'INSERT INTO playstore_apps VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, current_date)', [
                     verId,
                     app.title,
                     app.summary,
@@ -416,13 +529,14 @@ class DB {
                     app.minInstalls,
                     app.maxInstalls,
                     devId,
-                    app.updated,
+                    new Date(Number(app.updated)),
                     app.androidVersion,
                     app.contentRating,
                     app.screenshots,
                     app.video,
-                    app.recentChanges,
+                    Array.isArray(app.recentChanges) ? app.recentChanges : [app.recentChanges],
                 ]);
+            }
             await client.lquery('COMMIT');
         } catch (e) {
             logger.debug(e);
