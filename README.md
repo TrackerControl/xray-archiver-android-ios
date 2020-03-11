@@ -57,7 +57,7 @@ Then, you can start downloading with:
 node pipeline/archiver/downloader/downloader[_ios].js
 ```
 
-* Note: The downloading of iOS needs an additional Windows server, that uploads Apple apps to your X-Ray server. This is not yet documented. *
+**Note: The downloading of iOS needs an additional Windows server, that uploads Apple apps to your X-Ray server. This is not yet documented.**
 
 ### Database
 
