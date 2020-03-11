@@ -1,44 +1,135 @@
 # X-Ray Archiver
 
-[![build status](https://circleci.com/gh/sociam/xray-archiver.png?circle-token=:circle-token)](https://circleci.com/gh/sociam/xray-archiver)
+Project for the archiving of mobile applications from the Google Play Store and the Apple App Store.
 
-SOCIAM Project for the archiving of Mobile applications. Stores Application metadata
+Stores Application metadata and files, and provides a server API to access the results from outside.
 
-## App Data Retriever
-Node JS script for the retrieval of Data relating to mobile applications found on the Google playstore. The script relies on the initialisation of a postgres database and the existance of search terms in the database.
+## Software Components
 
-This script utilises the [Google Play Scraper](https://github.com/facundoolano/google-play-scraper) GitHub projet for fetching information from the google play store.
+### Search Term Explorer
+The `Search Term Explorer` generates search terms that can be used by the `App Metadata Retriever` for fetching app meta data from the Google and Apple app stores.
 
-## Search Term Explorer
-The search Term explorer generates search terms that can be used by the retriever for fetching app meta data from the google play store. it uses the same [Google Play Scraper](https://github.com/facundoolano/google-play-scraper) for this task.
+It relies on the [Google Play Scraper](https://github.com/facundoolano/google-play-scraper) and the [App Store Scraper](https://github.com/facundoolano/app-store-scraper).
 
-The search terms generated are auto-completion suggestions made by the google play store. These mean that search terms used by the retreiver will lead to popular apps searched by users.
+The search terms generated are auto-completion suggestions made by the app stores.
 
-The explorer depends on the initialisation of a Postgres DB being set up according to the init_db.sql file.
+In other words, search terms used by the retreiver lead to popular apps searched by users.
 
-## APK Downloader
-The APK downloader fetches Android app APK's using the app data that has been stored in the Postgres DB. The script utilises the [GPlayCli](https://github.com/matlink/gplaycli) for connecting to the google play store for downloading application APKs.
+```bash
+node pipeline/archiver/explorer/explorer[_ios].js
+```
 
-## Database
-A Postgres database contains a series of tables required by all elements of the project. Tables for search term data and app meta data are required for each script to function correctly.
+### App Metadata Retriever
 
-An init_db.sql file located in the db folder of this project can be used to initial a postgres database.
+NodeJS Script for the retrieval of Data relating to mobile applications found on the Google and Apple app stores.
 
-## API Server
-An API server has been developed to allow others to interface with the data collected and generated. Information regarding this API can be found in the [API ReadMe](https://github.com/sociam/xray-archiver/tree/develop/pipeline/apiserv)
+The script relies on the existence of search terms in the database.
 
-# Installation
+This script utilises the [Google Play Scraper](https://github.com/facundoolano/google-play-scraper) and the [App Store Scraper](https://github.com/facundoolano/app-store-scraper).
 
-## install.sh
-*info about the install bash script*
+```bash
+node pipeline/archiver/retriever/retriever[_ios].js
+```
 
-## init_db.sql
-*info about the init db sql file.*
+### App Downloader
 
-## Dependencies:
-* Node
-    * See - package.json
-* [Gplaycli] (https://github.com/matlink/gplaycli)
-    * Expecting gplaycli installed to path
-* PostgreSQL
-    * db setup to handle the app data scraped. See db/init_db.sql.
+The `App Downloader` fetches Android and Apple app files using the app data that has been collected by the `App Metadata Retriever`.
+
+The script utilises the `GPlayCli` for connecting to the app stores for downloading app files.
+
+For Android app downloading, first start python-token-dispenser with:
+
+```bash
+python3 token_dispenser.py &
+```
+
+You then should attempt to unlock your Google account, by visiting https://accounts.google.com/b/0/DisplayUnlockCaptcha with the IP address that is used for crawling.
+
+You can check that everything is working fine by running:
+
+```bash
+gplaycli -d com.facebook.katana -c /etc/xray/credentials.json -v -p -t
+```
+
+Then, you can start downloading with:
+
+```bash
+node pipeline/archiver/downloader/downloader[_ios].js
+```
+
+**Note: The downloading of iOS needs an additional Windows server, that uploads Apple apps to your X-Ray server. This is not yet documented.**
+
+### Database
+
+A Postgres database contains a series of tables required by all elements of the project.
+
+Tables for search term data and app meta data are required for each script to function correctly.
+
+An `init_db.sql` file located in the db folder of this project can be used to initial a postgres database (see section  `Installation`).
+
+### API Server
+An API server has been developed to allow others to interface with the data collected and generated. Information regarding this API can be found in the [API ReadMe](https://github.com/sociam/xray-archiver/tree/develop/pipeline/apiserv).
+
+## Installation (on Ubuntu 18.04)
+
+- Install npm
+
+```bash
+sudo apt install nodejs npm
+```
+
+- Install Go
+
+```bash
+sudo add-apt-repository ppa:gophers/archive
+sudo apt-get update
+sudo apt-get install golang-1.11-go
+
+echo 'export PATH=/usr/lib/go-1.11/bin:$PATH' >> ~/.bashrc 
+echo 'export GOPATH=$HOME/gocode' >> ~/.bashrc 
+```
+
+- Install postgresql and create xray database
+
+```bash
+sudo apt install postgresql
+sudo -u postgres psql -c "CREATE DATABASE xraydb"
+sudo -u postgres psql xraydb < init_db.sql
+```
+
+- You may have to change your database permissions in your `/etc/postgresql/*/main/pg_hba.conf`
+
+- Install node packages
+
+```bash
+npm install -g google-play-scraper pg
+```
+
+- Create xray configuration files (and fill in your details)
+
+```bash
+sudo mkdir /etc/xray
+sudo cp $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/config/example_config.json /etc/xray/config.json
+```
+
+- Download and compile source
+
+```bash
+go get github.com/OxfordHCC/xray-archiver-android-ios/pipeline
+$GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/scripts/install.sh
+```
+
+- Set up token dispenser
+
+```bash
+git clone https://github.com/kasnder/python-token-dispenser
+```
+
+- Now, put Goole credentials into your `python-token-dispenser/passwords/passwords.txt`
+- Install modified gplaycli
+
+```bash
+git clone https://github.com/kasnder/gplaycli && pip3 install ./gplaycli/
+sudo cp $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/config/example_credentials.json /etc/xray/credentials.json
+```
+
