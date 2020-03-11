@@ -19,7 +19,7 @@ async function ensureDirectoriesExist(directories) {
     const validDirectories = [];
     for (const dir of directories) {
         try {
-            await fs.ensureDir(path.join(dir.path, 'apps'));
+            await fs.ensureDir(dir.path);
             validDirectories.push(dir);
         } catch (err) {
             logger.err(
@@ -169,7 +169,7 @@ async function resolveAppSaveInfo(appData) {
         `\nappId ${appData.app}`, `\nappStore ${appData.store}`,
         `\nregion ${appData.region}`, `\nversion ${appData.version}`);
 
-    const appSavePath = path.join(appsSaveDir.path, 'apps', ...appData.app.split("."),
+    const appSavePath = path.join(appsSaveDir.path, ...appData.app.split("."),
         appData.store, appData.region, appData.version);
     logger.info(`App Save Directory formed: '${appSavePath}'`);
 
