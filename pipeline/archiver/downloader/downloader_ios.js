@@ -13,8 +13,6 @@ const db = new (require('../../db/db_ios'))('downloader');
 const plistParser = require('plist');
 const unzip = require('unzipper');
 
-const uploadPath = "/var/xray/apps/upload/";
-
 async function ensureDirectoriesExist(directories) {
     const validDirectories = [];
     for (const dir of directories) {
@@ -239,9 +237,12 @@ async function main() {
     for (;;) {
         let filenames = [];
 
+        const appsSaveDir = await getLocationWithLeastSpace();
+        const uploadPath = path.join(appsSaveDir.path, 'upload');
+
         let files = fs.readdirSync(uploadPath);        
         files.forEach(file => {
-            let filename = uploadPath + file;
+            let filename = path.join(uploadPath, file);
             if (!filename.endsWith(".ipa"))
                 return;        
             filenames.push(filename);
