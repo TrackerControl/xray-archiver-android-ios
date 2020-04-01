@@ -133,3 +133,4 @@ git clone https://github.com/kasnder/gplaycli && pip3 install ./gplaycli/
 sudo cp $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/config/example_credentials.json /etc/xray/credentials.json
 ```
 
+- Install apktool according to the instructions at <https://ibotpeaches.github.io/Apktool/install/>
