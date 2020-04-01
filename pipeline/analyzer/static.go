@@ -30,7 +30,7 @@ type manifestApp struct {
 
 func parseManifest(app *util.App) (manifest *AndroidManifest, gotIcon bool, err error) {
 	manifest = &AndroidManifest{}
-	manifestFile, err := os.Open(path.Join(app.OutDir(), "AndroidManifest.xml"))
+    manifestFile, err := os.Open(path.Join(app.OutDir(), "AndroidManifest.xml"))
 	if err != nil {
 		return nil, false, err
 	}
@@ -44,8 +44,11 @@ func parseManifest(app *util.App) (manifest *AndroidManifest, gotIcon bool, err 
 	}
 
 	if manifest.Package != "" {
-		app.ID = manifest.Package
-	}
+		//app.ID = manifest.Package
+	    if (app.ID != manifest.Package) {
+            fmt.Printf("mismatch package id and app id from store, yet this can happen (e.g. appId 'com.r3m.d20'). continuing..");
+        }
+    }
 
 	split := strings.SplitN(manifest.Application.Icon, "/", 2)
 	if len(split) != 2 {
