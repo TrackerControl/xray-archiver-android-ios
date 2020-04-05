@@ -182,12 +182,24 @@ async function resolveAPKSaveInfo(appData) {
 }
 
 function downloadApp(appData, appSavePath) {
+    let { isWorker, workerNumber, workerTotal } = getWorkerDetails();
+
     // Command line args for gplay cli
-    const args = [
-        '-vd', appData.app,
-        '-f', appSavePath,
-        '-c', config.system_config.downloader_credentials,
-    ];
+    let args;
+    if (isWorker) {
+        args = [
+            '-vd', appData.app,
+            '-f', appSavePath,
+            '-c', config.system_config.deterministic_credentials[workerNumber],
+        ];
+    } else {
+        args = [
+            '-vd', appData.app,
+            '-f', appSavePath,
+            '-c', config.system_config.downloader_credentials,
+        ];
+    }
+
     const spw = require('child-process-promise').spawn;
     logger.debug(`Passing args to downloader${args}`);
     const apkDownloader = spw('gplaycli', args);
@@ -253,11 +265,25 @@ async function download(app) {
     return undefined;
 }
 
+function getWorkerDetails() {
+    let args = process.argv.slice(2);
+    let workerNumber = args[0];
+    let workerTotal = args[1];
+    let isWorker = workerNumber !== undefined
+                    && workerTotal !== undefined
+
+    return { isWorker, workerNumber, workerTotal };
+}
+
 async function main() {
     // Ensure that directory structures exist.
     downloadLocations = await ensureDirectoriesExist(
         config.storage_config.apk_download_directories
     );
+
+    let { isWorker, workerNumber, workerTotal } = getWorkerDetails();
+    console.log('isWorker', isWorker, 'workerNumber', workerNumber, 'workerTotal', workerTotal);
+
 
     for (;;) {
         let apps;
@@ -269,6 +295,11 @@ async function main() {
         }
 
         for (const app of apps ) {
+            if (isWorker && app.id % workerTotal != workerNumber) {
+                console.log('Skipping app ' + app.id);
+                continue;
+            }
+
             try {
                 await download(app).catch((err) => {
                     throw err;
