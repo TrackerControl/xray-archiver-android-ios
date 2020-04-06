@@ -130,6 +130,33 @@ func AddPerms(app *util.App) error {
 	return nil
 }
 
+
+// SetTrackers is a function that sets the tracker fields of the DB.
+func SetTrackers(id int64, hasFB bool, hasFirebase bool, hasGCM bool, hasGAds bool) error {
+	if !useDB || id == 0 {
+		return nil
+	}
+
+	rows, err := db.Query("UPDATE app_versions SET hasFB = $1, hasFirebase = $2, hasGCM = $3, hasGAds = $4 WHERE id = $5", hasFB, hasFirebase, hasGCM, hasGAds, id)
+	if rows != nil {
+		rows.Close()
+	}
+	return err
+}
+
+// SetManifest is a function that sets the manifest field of the DB.
+func SetManifest(id int64, manifest string) error {
+	if !useDB || id == 0 {
+		return nil
+	}
+
+	rows, err := db.Query("UPDATE app_versions SET manifest = $1 WHERE id = $2", manifest, id)
+	if rows != nil {
+		rows.Close()
+	}
+	return err
+}
+
 // SetIcon is a function that sets the icon field of the DB.
 func SetIcon(id int64, icon string) error {
 	if !useDB || id == 0 {
@@ -1180,9 +1207,9 @@ func QueryAll(
 	return result, nil
 }
 
-// GetAppsToAnalyze returns a list of up to 10 apps that have analyzed=False and
+// GetAppsToAnalyze returns a list of up to `limit` apps that have analyzed=False and
 // downloaded=True for the analyzer.
-func GetAppsToAnalyze() ([]AppVersion, error) {
+func GetAppsToAnalyze(limit int64) ([]AppVersion, error) {
 	fmt.Println("Getting Apps From the DB to Analyse.")
 	rows, err := db.Query(
 		`SELECT
@@ -1199,13 +1226,13 @@ func GetAppsToAnalyze() ([]AppVersion, error) {
 		FROM
 			app_versions v FULL OUTER JOIN playstore_apps p ON (v.id = p.id)
 		WHERE
-			v.analyzed = False
+			NOT v.analyzed
 		AND
-			v.downloaded = True
+			v.downloaded
 		ORDER BY
 			v.last_analyze_attempt NULLS FIRST,
 			p.max_installs USING >
-		LIMIT 10`)
+		LIMIT $1`, limit) // AND family_genre IS NOT NULL
 	fmt.Println("DB Query Made.")
 	if rows != nil {
 		defer rows.Close()
@@ -1213,7 +1240,7 @@ func GetAppsToAnalyze() ([]AppVersion, error) {
 	if err != nil {
 		return []AppVersion{}, err
 	}
-	ret := make([]AppVersion, 0, 10)
+	ret := make([]AppVersion, 0, limit)
 	for i := 0; rows.Next(); i++ {
 		var cur AppVersion
 		var screenFlags sql.NullInt64

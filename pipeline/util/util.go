@@ -27,13 +27,19 @@ type App struct {
 	ID, Store, Region, Ver string
 	Path, UnpackDir        string
 	Perms                  []Permission
-	Hosts                  []string
+	MetaData               []MetaDatum
+    Components             []Component
+    Hosts                  []string
 	Packages               []string
 	Icon                   string
 	UsesReflect            bool
 	APKLocationUUID        string
 	APKLocationPath        string
 	APKLocationRoot        string
+    Manifest               string
+    HasFacebook            bool
+    HasFirebase            bool
+    HasGAds                bool
 }
 
 // Permission Struct represents the permission information found
@@ -41,6 +47,15 @@ type App struct {
 type Permission struct {
 	ID        string `xml:"name,attr"`
 	MaxSdkVer string `xml:"maxSdkVersion,attr"`
+}
+
+// Meta data information found in APK
+type MetaDatum struct {
+	Name  string `xml:"name,attr"`
+	Value string `xml:"value,attr"`
+}
+type Component struct {
+	Name  string `xml:"name,attr"`
 }
 
 // NewApp Constructs a new app. initialising values based on
@@ -85,13 +100,13 @@ func getUUIDMountPath(UUID string) string {
 // follewed by checking each location in the config forming a path from the
 // app version details.
 func (app *App) ApkPath() string {
-	fmt.Println("Getting APK Path for App:", app.ID)
+	// fmt.Println("Getting APK Path for App:", app.ID)
 
 	apkLocation := path.Join(app.APKLocationPath, app.ID+".apk")
-	fmt.Println("Checking if APK is at: ", apkLocation)
+	// fmt.Println("Checking if APK is at: ", apkLocation)
 
 	if _, err := os.Stat(apkLocation); err == nil {
-		fmt.Println("App Found in DB specified location: ", apkLocation)
+		fmt.Println("APK found in DB specified location: ", apkLocation)
 		return path.Join(path.Clean(app.APKLocationPath), app.ID+".apk")
 	}
 
@@ -102,7 +117,7 @@ func (app *App) ApkPath() string {
 
 	fmt.Println("Checking if APK is at: ", apkLocation)
 	if _, err := os.Stat(apkLocation); err == nil {
-		fmt.Println("App Found on DB specified Device. UUID: ", app.APKLocationUUID, "APK Path:", apkLocation)
+		fmt.Println("Apk found on DB specified Device. UUID: ", app.APKLocationUUID, "APK Path:", apkLocation)
 		return path.Join(path.Clean(apkLocation), app.ID+".apk")
 	}
 

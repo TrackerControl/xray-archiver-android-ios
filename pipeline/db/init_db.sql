@@ -26,6 +26,11 @@ create table app_versions(
   store                     text                     not null,
   region                    text                     not null,
   version                   text                     not null,
+  manifest                  json                             , -- Manifest.xml converted to JSON
+  hasFB                     bool                             ,
+  hasFirebase               bool                             ,
+  hasGCM                    bool                             ,
+  hasGAds                   bool                             ,
   apk_location              text                             , -- Path to the APK for this version of the App.
   apk_filesystem            text                             ,
   apk_filesystem_name       text                             ,

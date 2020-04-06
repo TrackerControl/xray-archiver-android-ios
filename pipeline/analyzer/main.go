@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"sync"
+//	"sync"
 	"time"
 
 	"github.com/sociam/xray-archiver/pipeline/db"
@@ -45,21 +45,34 @@ func analyze(app *util.App) error {
 	}
 	fmt.Printf("Unpacked app %s version %s\n", app.ID, app.Ver)
 
-	fmt.Println("Getting permissions...")
-	manifest, gotIcon, err := parseManifest(app)
+	// fmt.Println("Getting permissions...")
+	manifest, gotIcon, err, manifestJson := parseManifest(app)
 	if err != nil {
 		fmt.Println("Error parsing manifest: ", err.Error())
 	} else {
+		app.MetaData = manifest.Application.MetaData
+		// fmt.Printf("Manifest meta data found: %v\n", app.MetaData)
+
+		app.Components = manifest.getComponents()
+		// fmt.Printf("Components found: %v\n", app.Components)
+
 		app.Perms = manifest.getPerms()
-		fmt.Printf("Permissions found: %v\n\n", app.Perms)
+		fmt.Printf("Permissions found: %v\n", app.Perms)
 		err = db.AddPerms(app)
 		if err != nil {
 			fmt.Printf("Error writing permissions to DB: %s\n", err.Error())
 		}
+  		// fmt.Println(manifestJson)
+		if manifestJson != "" {
+			hasFB, hasFirebase, hasGCM, hasGAds := simpleTrackers(manifestJson)
+			fmt.Println("(hasFB, hasFirebase, hasGCM, hasGAds) = ", hasFB, hasFirebase, hasGCM, hasGAds)
+			db.SetTrackers(app.DBID, hasFB, hasFirebase, hasGCM, hasGAds)
+			db.SetManifest(app.DBID, manifestJson)
+		}
 		if gotIcon {
 			app.Icon = "/" + url.PathEscape(app.ID) + "/" + url.PathEscape(app.Store) +
 				"/" + url.PathEscape(app.Region) + "/" + url.PathEscape(app.Ver) + "/icon.png"
-			fmt.Printf("Got icon: %s\n", app.Icon)
+			// fmt.Printf("Got icon: %s\n", app.Icon)
 			err = db.SetIcon(app.DBID, app.Icon)
 			if err != nil {
 				fmt.Printf("Error setting icon of app in DB: %s\n", err.Error())
@@ -67,12 +80,12 @@ func analyze(app *util.App) error {
 		}
 	}
 
-	fmt.Println("Running simple analysis... ")
+	// fmt.Println("Running simple analysis... ")
 	app.Hosts, err = simpleAnalyze(app)
 	if err != nil {
 		fmt.Printf("Error getting hosts: %s\n", err.Error())
 	} else {
-		fmt.Printf("Hosts found: %v\n\n", app.Hosts)
+		fmt.Printf("Hosts found: %v\n", app.Hosts)
 
 		err = db.AddHosts(app, app.Hosts)
 		if err != nil {
@@ -84,7 +97,7 @@ func analyze(app *util.App) error {
 	if err != nil {
 		fmt.Printf("Error checking for reflect usage: %s\n", err.Error())
 	} else {
-		fmt.Printf("App uses reflect: %v\n", app.UsesReflect)
+		// fmt.Printf("App uses reflect: %v\n", app.UsesReflect)
 
 		err = db.SetReflect(app.DBID, app.UsesReflect)
 		if err != nil {
@@ -116,12 +129,32 @@ func analyze(app *util.App) error {
 	return nil
 }
 
+func worker(id int, jobs <-chan *util.App, results chan<- bool) {
+    for app := range jobs {
+    	fmt.Println("worker", id, "started  job", app.ID)
+        fmt.Printf("Got app %v\n", app)
+        err := analyze(app)
+    	fmt.Println("worker", id, "finished  job", app.ID)
+    	results <- err != nil
+    }
+}
+
 func runServer() {
 	fmt.Println("Checking APK Unpack Directory:", util.Cfg.StorageConfig.APKUnpackDirectory)
 	util.CheckDir(util.Cfg.StorageConfig.APKUnpackDirectory, "Unpacked APK directory")
 
 	for {
-		apps, err := db.GetAppsToAnalyze()
+		const numWorkers = 2
+		const numJobs = 10
+
+		jobs := make(chan *util.App, numJobs)
+		results := make(chan bool, numJobs)
+
+		for w := 1; w <= numWorkers; w++ {
+	        go worker(w, jobs, results)
+	    }
+
+		apps, err := db.GetAppsToAnalyze(numJobs)
 		if err != nil || len(apps) == 0 {
 			if err != nil {
 				fmt.Println("Error getting apps to analyze from DB:", err.Error())
@@ -132,17 +165,17 @@ func runServer() {
 			time.Sleep(30 * time.Second)
 		}
 
-		wg := sync.WaitGroup{}
-		wg.Add(len(apps))
-		for _, dbApp := range apps {
-			app := dbApp.UtilApp()
-			go func() {
-				fmt.Printf("Got app %v\n", app)
-				analyze(app)
-				wg.Done()
-			}()
-		}
-		wg.Wait()
+		// add jobs to queue
+	    for _, dbApp := range apps {
+    		app := dbApp.UtilApp() // could also be moved into worker..
+    	    jobs <- app
+	    }
+        close(jobs) // indicate that there are no further jobs
+
+        // wait for all jobs to finish..
+        for a := 1; a <= numJobs; a++ {
+            <-results
+        }
 	}
 }
 
