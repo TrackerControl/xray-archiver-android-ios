@@ -6,6 +6,12 @@ Stores Application metadata and files, and provides a server API to access the r
 
 ## Software Components
 
+Note: If you want to keep services running, even after exiting your terminal session, you can detach processes by using tools, such as `nohup`:
+
+```bash
+nohup node pipeline/archiver/explorer/explorer.js > explorer.log &
+```
+
 ### Search Term Explorer
 The `Search Term Explorer` generates search terms that can be used by the `App Metadata Retriever` for fetching app meta data from the Google and Apple app stores.
 
