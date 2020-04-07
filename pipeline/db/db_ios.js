@@ -244,6 +244,96 @@ class DB {
         }
     }
 
+    async queryAppsToAnalyse(batch) {
+        logger.info('Getting Apps From the DB to Analyse.');
+        try {
+            const res = await this.query('SELECT \
+                        v.id, \
+                        v.app, \
+                        v.store, \
+                        v.region, \
+                        v.version, \
+                        v.screen_flags, \
+                        v.icon, \
+                        v.apk_location, \
+                        v.apk_location_root, \
+                        v.apk_location_uuid \
+                    FROM \
+                        app_versions v FULL OUTER JOIN playstore_apps p ON (v.id = p.id) \
+                    WHERE \
+                        NOT v.analyzed \
+                    AND \
+                        v.downloaded \
+                    ORDER BY \
+                        v.last_analyze_attempt NULLS FIRST, \
+                        p.max_installs USING > \
+                    LIMIT $1', [batch]);
+
+            if (res.rowCount <= 0) {
+                return Promise.reject('No apps found.');
+            }
+            logger.info('Found apps to analyse:', res.rowCount);
+            return res.rows;
+        } catch (err) {
+            logger.err('Error finding apps to analyse:', err);
+            throw err;
+        }
+    }
+
+    async updatedAnalyseAttempt(app) {
+        try {
+            await this.query('UPDATE app_versions SET last_analyze_attempt=CURRENT_TIMESTAMP WHERE id = $1', [app.id]);
+        } catch (err) {
+            logger.err('Error updating app version last analyse attempt date:', err);
+            throw err;
+        }
+    }
+
+    async updateAppFiles(app, files) {
+        try {
+            await this.query('UPDATE app_versions SET files = $1 WHERE id = $2', [files, app.id]);
+        } catch (err) {
+            logger.err('Error setting files:', err);
+            throw err;
+        }
+    }
+
+    async updateAppManifest(app, manifest) {
+        try {
+            await this.query('UPDATE app_versions SET manifest = $1 WHERE id = $2', [manifest, app.id]);
+        } catch (err) {
+            logger.err('Error setting manifest:', err);
+            throw err;
+        }
+    }
+
+    async updateAppTrackers(app, hasFB, hasFirebase, hasGAds) {
+        try {
+            await this.query('UPDATE app_versions SET hasFB = $1, hasFirebase = $2, hasGAds = $3 WHERE id = $4', [hasFB, hasFirebase, hasGAds, app.id]);
+        } catch (err) {
+            logger.err('Error setting trackers:', err);
+            throw err;
+        }
+    }
+
+    async updateAppAnalysed(app) {
+        try {
+            await this.query('UPDATE app_versions SET analyzed = true WHERE id = $1', [app.id]);
+        } catch (err) {
+            logger.err('Error setting manifest:', err);
+            throw err;
+        }
+    }
+
+    async updateAppAnalysis(app, files, manifest, hasFB, hasFirebase, hasGAds) {
+        try {
+            await this.query('UPDATE app_versions SET analyzed = true, files = $1, manifest = $2, hasFB = $3, hasFirebase = $4, hasGAds = $5 WHERE id = $6', [files, manifest, hasFB, hasFirebase, hasGAds, app.id]);
+        } catch (err) {
+            logger.err('Error setting manifest:', err);
+            throw err;
+        }
+    }
+
     async updateDownloadedApp(
         app,
         appSaveInfo={
