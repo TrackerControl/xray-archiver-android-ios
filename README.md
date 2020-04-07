@@ -140,3 +140,9 @@ sudo cp $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/conf
 ```
 
 - Install apktool according to the instructions at <https://ibotpeaches.github.io/Apktool/install/>
+
+- Install unzip, for iOS Analyzer
+
+```bash
+sudo apt install unzip
+```
