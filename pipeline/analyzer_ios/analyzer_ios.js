@@ -107,19 +107,19 @@ async function main() {
     let { isWorker, workerNumber, workerTotal } = getWorkerDetails();
     console.log('isWorker', isWorker, 'workerNumber', workerNumber, 'workerTotal', workerTotal);
 
-    //for (;;) {
+    for (;;) {
         let apps;
         try {
-            apps = await db.queryAppsToAnalyse(1);
+            apps = await db.queryAppsToAnalyse(1000);
         } catch (err) {
             await new Promise((resolve) => setTimeout(resolve, 1000));
-    //        continue;
+            continue;
         }
 
         for (const app of apps ) {
             if (isWorker && app.id % workerTotal != workerNumber) {
                 console.log('Skipping app ' + app.id);
-    //            continue;
+                continue;
             }
 
             try {
@@ -134,7 +134,7 @@ async function main() {
                 );
             }
         }
-    //}
+    }
 }
 
 main();
