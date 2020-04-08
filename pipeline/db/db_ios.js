@@ -289,45 +289,18 @@ class DB {
         }
     }
 
-    async updateAppFiles(app, files) {
+    async updateAppFrameworks(app, frameworks) {
         try {
-            await this.query('UPDATE app_versions SET files = $1 WHERE id = $2', [files, app.id]);
+            await this.query('UPDATE app_versions SET frameworks = $1 WHERE id = $2', [frameworks, app.id]);
         } catch (err) {
-            logger.err('Error setting files:', err);
+            logger.err('Error setting frameworks:', err);
             throw err;
         }
     }
 
-    async updateAppManifest(app, manifest) {
+    async updateAppAnalysis(app, files, manifest, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds) {
         try {
-            await this.query('UPDATE app_versions SET manifest = $1 WHERE id = $2', [manifest, app.id]);
-        } catch (err) {
-            logger.err('Error setting manifest:', err);
-            throw err;
-        }
-    }
-
-    async updateAppTrackers(app, hasFB, hasFirebase, hasGAds) {
-        try {
-            await this.query('UPDATE app_versions SET hasFB = $1, hasFirebase = $2, hasGAds = $3 WHERE id = $4', [hasFB, hasFirebase, hasGAds, app.id]);
-        } catch (err) {
-            logger.err('Error setting trackers:', err);
-            throw err;
-        }
-    }
-
-    async updateAppAnalysed(app) {
-        try {
-            await this.query('UPDATE app_versions SET analyzed = true WHERE id = $1', [app.id]);
-        } catch (err) {
-            logger.err('Error setting manifest:', err);
-            throw err;
-        }
-    }
-
-    async updateAppAnalysis(app, files, manifest, hasFB, hasFirebase, hasGAds) {
-        try {
-            await this.query('UPDATE app_versions SET analyzed = true, files = $1, manifest = $2, hasFB = $3, hasFirebase = $4, hasGAds = $5 WHERE id = $6', [files, manifest, hasFB, hasFirebase, hasGAds, app.id]);
+            await this.query('UPDATE app_versions SET analyzed = true, files = $1, manifest = $2, trackers = $3, trackerSettings = $4, bundles = $5, hasFB = $6, hasFirebase = $7, hasGAds = $8 WHERE id = $9', [files, manifest, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds, app.id]);
         } catch (err) {
             logger.err('Error setting manifest:', err);
             throw err;

@@ -25,6 +25,9 @@ create table app_versions(
   hasFirebase               bool                             ,
   hasGAds                   bool                             ,
   files                   text[]                             ,
+  bundles                 text[]                             ,
+  trackers                text[]                             ,
+  trackerSettings         text[]                             ,
   apk_location              text                             , -- Path to the APK for this version of the App.
   apk_filesystem            text                             ,
   apk_filesystem_name       text                             ,

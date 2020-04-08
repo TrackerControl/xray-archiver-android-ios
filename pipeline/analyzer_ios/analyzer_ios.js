@@ -7,40 +7,90 @@ const logger = require('../util/logger');
 const util = require('util');
 const bashExec = util.promisify(require('child_process').exec);
 const db = new (require('../db/db_ios'))('downloader');
+const trackerSignatures = require('./tracker_signatures');
 
-async function analyse(app) {
+const bufferSize = 1024 * 2000;
+
+function removeDuplicates(array) {
+    return [...new Set(array)];
+}
+
+async function getFiles(appPath) {
+    const { stdout, stderr } = await bashExec(`unzip -l ${appPath} | tail -n+4 | awk -v col=4 '{print $col}'`, { maxBuffer: bufferSize }); // large buffer
+    if (stderr) {
+        logger.err(`could obtain file list from ${appPath}. throwing err.`);
+        throw stderr;
+    }
+
+    return stdout.split('\n').filter(Boolean); // parse, whilst removing empty rows
+}
+
+async function analyse(app, obtainFrameworks = false) {    
     logger.info('Starting analysis attempt for:', app.app);
     await db.updatedAnalyseAttempt(app);
 
     const appPath = path.join(app.apk_location, `${app.app}.ipa`);
 
     // Try to obtain list of files in IPA
-    const { stdout, stderr } = await bashExec(`unzip -l ${appPath} | tail -n+4 | awk -v col=4 '{print $col}'`);
-    if (stderr) {
-        logger.err(`could not parse app at ${appPath}. throwing err.`);
-        throw stderr;
+    let files = await getFiles(appPath);
+    let fileList = files.join("\n"); // to be able to search over all files
+
+    // This method is very slow. 
+    if (obtainFrameworks) {
+        let frameworks = [];    
+        try {
+            const appName = fileList.match(/Payload\/([^\/]*?)\.app\/$/m)[1];
+            let command = `unzip -p ${appPath} Payload/${appName}.app/${appName} | strings | grep /System/Library/Frameworks`;
+            const { stdout, stderr } = await bashExec(command, { maxBuffer: bufferSize });
+            if (stderr) {
+                throw stderr;
+            }
+            frameworks = removeDuplicates(stdout.split('\n').filter(Boolean));
+            await db.updateAppFrameworks(app, frameworks);
+        } catch (ex) {
+            logger.err(`could not obtain frameworks from ${appPath}. continuing.`, ex);
+        }
+    } else {
+        console.log('Skipping frameworks.');
     }
 
-    // Parse list of filenames, whilst removing empty rows
-    let files = stdout.split('\n').filter(Boolean);
-    //await db.updateAppFiles(app, files);
+    // Check what bundles the app contains
+    const regexp = RegExp('\/([^\/]*?\.bundle)\/$','gm');
+    let bundles = [];
+    let match;
+    while ((match = regexp.exec(fileList)) !== null) {
+        bundles.push(match[1]);
+    }
 
     // Read Info.plist.json, which was extracted from .ipa in the iOS downloader
     const manifestPath = path.join(app.apk_location, `${app.app}.plist.json`);
     const manifestJson = fs.readFileSync(manifestPath).toString();
     const manifest = JSON.parse(manifestJson);
-    //await db.updateAppManifest(app, manifestJson);
 
-    let hasFB = manifestJson.includes('FacebookAppID');
-    let hasFirebase = stdout.includes('GoogleService-Info.plist');
-    let hasGAds = manifestJson.includes('GADApplicationIdentifier');
-    console.log('(hasFB, hasFirebase, hasGAds) = ', hasFB, hasFirebase, hasGAds);
-    //await db.updateAppTrackers(app, hasFB, hasFirebase, hasGAds);
+    // Check trackers against known signatures
+    let trackers = [];
+    trackerSignatures.manifest.forEach(signature => {
+        if (manifest[signature.signature])
+            trackers.push(signature.name);
+    });
+    trackerSignatures.files.forEach(signature => {
+        if (fileList.includes(signature.signature))
+            trackers.push(signature.name);
+    });
 
-    //await db.updateAppAnalysed(app);
+    // TODO: Remove, once next analysis done
+    let hasFB = trackers.includes('FB');
+    let hasFirebase = trackers.includes('Firebase');
+    let hasGAds = trackers.includes('GAds');
+    
+    // Check if the app uses any tracking settings
+    let trackerSettings = [];
+    trackerSignatures.settings.forEach(setting => {
+        if (manifest[setting.signature] === setting.value)
+            trackerSettings.push(setting.name);
+    });
 
-    // fast updates, in one step to avoid breakage
-    await db.updateAppAnalysis(app, files, manifest, hasFB, hasFirebase, hasGAds);
+    await db.updateAppAnalysis(app, files, manifest, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds);
 }
 
 function getWorkerDetails() {
@@ -57,24 +107,24 @@ async function main() {
     let { isWorker, workerNumber, workerTotal } = getWorkerDetails();
     console.log('isWorker', isWorker, 'workerNumber', workerNumber, 'workerTotal', workerTotal);
 
-    for (;;) {
+    //for (;;) {
         let apps;
         try {
-            apps = await db.queryAppsToAnalyse(1000);
+            apps = await db.queryAppsToAnalyse(1);
         } catch (err) {
             await new Promise((resolve) => setTimeout(resolve, 1000));
-            continue;
+    //        continue;
         }
 
         for (const app of apps ) {
             if (isWorker && app.id % workerTotal != workerNumber) {
                 console.log('Skipping app ' + app.id);
-                continue;
+    //            continue;
             }
 
             try {
                 console.log(app);
-                await analyse(app).catch((err) => {
+                await analyse(app, obtainFrameworks = false).catch((err) => {
                     throw err;
                 });
             } catch (err) {
@@ -84,7 +134,7 @@ async function main() {
                 );
             }
         }
-    }
+    //}
 }
 
 main();
