@@ -43,6 +43,7 @@ create table app_versions(
   has_apk_stored            bool                     default false,
   analyzed                  bool                     not null,
   last_dl_attempt      timestamp                             ,
+  analysis_version           int                             ,
   icon                      text                             ,
   uses_reflect              bool                             ,
   last_analyze_attempt timestamp                             ,

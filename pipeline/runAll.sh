@@ -7,4 +7,5 @@ nohup node ./archiver/downloader/downloader.js > ./archiver/downloader/downloade
 
 #### ANALYSING
 nohup node ./analyzer_ios/analyzer_ios.js > analyzer_ios/analyzer_ios.log &
+nohup node ./analyzer/analyzer_step2.js > analyzer/analyzer_step2.log &
 nohup ./analyzer/analyzer -daemon -db > analyzer/analyzer.log &

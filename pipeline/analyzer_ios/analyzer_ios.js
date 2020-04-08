@@ -11,6 +11,8 @@ const trackerSignatures = require('./tracker_signatures');
 
 const bufferSize = 1024 * 2000;
 
+const analysisVersion = 1;
+
 function removeDuplicates(array) {
     return [...new Set(array)];
 }
@@ -90,7 +92,7 @@ async function analyse(app, obtainFrameworks = false) {
             trackerSettings.push(setting.name);
     });
 
-    await db.updateAppAnalysis(app, files, manifestJson, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds);
+    await db.updateAppAnalysis(app, files, manifestJson, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds, analysisVersion);
 }
 
 function getWorkerDetails() {
@@ -110,7 +112,7 @@ async function main() {
     for (;;) {
         let apps;
         try {
-            apps = await db.queryAppsToAnalyse(1000);
+            apps = await db.queryAppsToAnalyse(1000, analysisVersion);
         } catch (err) {
             await new Promise((resolve) => setTimeout(resolve, 1000));
             continue;
@@ -123,7 +125,6 @@ async function main() {
             }
 
             try {
-                console.log(app);
                 await analyse(app, obtainFrameworks = false).catch((err) => {
                     throw err;
                 });

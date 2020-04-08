@@ -244,69 +244,6 @@ class DB {
         }
     }
 
-    async queryAppsToAnalyse(batch) {
-        logger.info('Getting Apps From the DB to Analyse.');
-        try {
-            const res = await this.query('SELECT \
-                        v.id, \
-                        v.app, \
-                        v.store, \
-                        v.region, \
-                        v.version, \
-                        v.screen_flags, \
-                        v.icon, \
-                        v.apk_location, \
-                        v.apk_location_root, \
-                        v.apk_location_uuid \
-                    FROM \
-                        app_versions v FULL OUTER JOIN playstore_apps p ON (v.id = p.id) \
-                    WHERE \
-                        NOT v.analyzed \
-                    AND \
-                        v.downloaded \
-                    ORDER BY \
-                        v.last_analyze_attempt NULLS FIRST, \
-                        p.max_installs USING > \
-                    LIMIT $1', [batch]);
-
-            if (res.rowCount <= 0) {
-                return Promise.reject('No apps found.');
-            }
-            logger.info('Found apps to analyse:', res.rowCount);
-            return res.rows;
-        } catch (err) {
-            logger.err('Error finding apps to analyse:', err);
-            throw err;
-        }
-    }
-
-    async updatedAnalyseAttempt(app) {
-        try {
-            await this.query('UPDATE app_versions SET last_analyze_attempt=CURRENT_TIMESTAMP WHERE id = $1', [app.id]);
-        } catch (err) {
-            logger.err('Error updating app version last analyse attempt date:', err);
-            throw err;
-        }
-    }
-
-    async updateAppFrameworks(app, frameworks) {
-        try {
-            await this.query('UPDATE app_versions SET frameworks = $1 WHERE id = $2', [frameworks, app.id]);
-        } catch (err) {
-            logger.err('Error setting frameworks:', err);
-            throw err;
-        }
-    }
-
-    async updateAppAnalysis(app, files, manifest, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds) {
-        try {
-            await this.query('UPDATE app_versions SET analyzed = true, files = $1, manifest = $2, trackers = $3, trackerSettings = $4, bundles = $5, hasFB = $6, hasFirebase = $7, hasGAds = $8 WHERE id = $9', [files, manifest, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds, app.id]);
-        } catch (err) {
-            logger.err('Error setting manifest:', err);
-            throw err;
-        }
-    }
-
     async updateDownloadedApp(
         app,
         appSaveInfo={
@@ -354,6 +291,69 @@ class DB {
             await this.query('UPDATE app_versions SET last_dl_attempt=CURRENT_TIMESTAMP WHERE app = $1', [app.app]);
         } catch (err) {
             logger.err('Error updaing app version last download attempt date:', err);
+            throw err;
+        }
+    }
+
+    async queryAppsToAnalyse(batch, analysisVersion) {
+        logger.info('Getting Apps From the DB to Analyse.');
+        try {
+            const res = await this.query('SELECT \
+                        v.id, \
+                        v.app, \
+                        v.store, \
+                        v.region, \
+                        v.version, \
+                        v.screen_flags, \
+                        v.icon, \
+                        v.apk_location, \
+                        v.apk_location_root, \
+                        v.apk_location_uuid \
+                    FROM \
+                        app_versions v FULL OUTER JOIN playstore_apps p ON (v.id = p.id) \
+                    WHERE \
+                        (NOT v.analyzed OR analysis_version IS NULL OR (analysis_version IS NOT NULL AND analysis_version < $1)) \
+                    AND \
+                        v.downloaded \
+                    ORDER BY \
+                        v.last_analyze_attempt NULLS FIRST, \
+                        p.max_installs USING > \
+                    LIMIT $2', [analysisVersion, batch]);
+
+            if (res.rowCount <= 0) {
+                return Promise.reject('No apps found.');
+            }
+            logger.info('Found apps to analyse:', res.rowCount);
+            return res.rows;
+        } catch (err) {
+            logger.err('Error finding apps to analyse:', err);
+            throw err;
+        }
+    }
+
+    async updatedAnalyseAttempt(app) {
+        try {
+            await this.query('UPDATE app_versions SET last_analyze_attempt=CURRENT_TIMESTAMP WHERE id = $1', [app.id]);
+        } catch (err) {
+            logger.err('Error updating app version last analyse attempt date:', err);
+            throw err;
+        }
+    }
+
+    async updateAppFrameworks(app, frameworks) {
+        try {
+            await this.query('UPDATE app_versions SET frameworks = $1 WHERE id = $2', [frameworks, app.id]);
+        } catch (err) {
+            logger.err('Error setting frameworks:', err);
+            throw err;
+        }
+    }
+
+    async updateAppAnalysis(app, files, manifestJson, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds, analysisVersion) {
+        try {
+            await this.query('UPDATE app_versions SET analyzed = true, files = $1, manifest = $2, trackers = $3, trackerSettings = $4, bundles = $5, hasFB = $6, hasFirebase = $7, hasGAds = $8, analysis_version = $9 WHERE id = $10', [files, manifestJson, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds, analysisVersion, app.id]);
+        } catch (err) {
+            logger.err('Error updating app analysis:', err);
             throw err;
         }
     }

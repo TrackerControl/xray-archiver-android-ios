@@ -231,7 +231,8 @@ class DB {
 
     async queryAppsToDownload(batch) {
         try {
-            const res = await this.query('SELECT * FROM (SELECT * FROM app_versions ORDER BY last_dl_attempt) AS versions FULL OUTER JOIN playstore_apps ON (playstore_apps.id = versions.id ) WHERE downloaded = False AND free = true LIMIT $1 ', [batch]);
+            //const res = await this.query('SELECT * FROM (SELECT * FROM app_versions ORDER BY last_dl_attempt) AS versions FULL OUTER JOIN playstore_apps ON (playstore_apps.id = versions.id ) WHERE NOT downloaded AND free ORDER BY min_installs DESC LIMIT $1 ', [batch]);
+            const res = await this.query('SELECT * FROM (SELECT min(a.id) AS id FROM app_versions AS a JOIN xray2017 AS b ON a.app = b.app GROUP BY a.app HAVING NOT bool_or(downloaded) AND date_part(\'year\', max(last_dl_attempt)) = 1970) AS undownloaded JOIN app_versions as versions ON versions.id = undownloaded.id JOIN playstore_apps ON (playstore_apps.id= versions.id ) WHERE free ORDER BY updated DESC LIMIT $1 ', [batch]);
 
             if (res.rowCount <= 0) {
                 return Promise.reject('No downloads found. Consider slowing down downloader or speeding up scraper');
@@ -291,6 +292,60 @@ class DB {
             await this.query('UPDATE app_versions SET last_dl_attempt=CURRENT_TIMESTAMP WHERE app = $1', [app.app]);
         } catch (err) {
             logger.err('Error updaing app version last download attempt date:', err);
+            throw err;
+        }
+    }
+
+    // There are two steps to the analysis (1st with Go, 2nd with Node.js)
+    async queryAppsToAnalyse(batch, analysisVersion) {
+        logger.info('Getting Apps From the DB to Analyse.');
+        try {
+            const res = await this.query('SELECT \
+                        v.id, \
+                        v.app, \
+                        v.store, \
+                        v.region, \
+                        v.manifest, \
+                        v.hasFB, \
+                        v.hasFirebase, \
+                        v.hasGCM, \
+                        v.hasGAds \
+                    FROM \
+                        app_versions v FULL OUTER JOIN playstore_apps p ON (v.id = p.id) \
+                    WHERE \
+                        v.manifest IS NOT NULL \
+                    AND \
+                        (v.analysis_version IS NULL OR (v.analysis_version IS NOT NULL AND v.analysis_version < $1)) \
+                    ORDER BY \
+                        v.last_analyze_attempt NULLS FIRST, \
+                        p.max_installs USING > \
+                    LIMIT $2', [analysisVersion, batch]);
+
+            if (res.rowCount <= 0) {
+                return Promise.reject('No apps found.');
+            }
+            logger.info('Found apps to analyse:', res.rowCount);
+            return res.rows;
+        } catch (err) {
+            logger.err('Error finding apps to analyse:', err);
+            throw err;
+        }
+    }
+
+    async updatedAnalyseAttempt(app) {
+        try {
+            await this.query('UPDATE app_versions SET last_analyze_attempt=CURRENT_TIMESTAMP WHERE id = $1', [app.id]);
+        } catch (err) {
+            logger.err('Error updating app version last analyse attempt date:', err);
+            throw err;
+        }
+    }
+
+    async updateAppAnalysis(app, trackers, trackerSettings, hasFB, hasFirebase, hasGAds, hasGCM, analysisVersion) {
+        try {
+            await this.query('UPDATE app_versions SET analyzed = true, trackers = $1, trackerSettings = $2, hasFB = $3, hasFirebase = $4, hasGAds = $5, hasGCM = $6, analysis_version = $7 WHERE id = $8', [trackers, trackerSettings, hasFB, hasFirebase, hasGAds, hasGCM, analysisVersion, app.id]);
+        } catch (err) {
+            logger.err('Error updating app analysis:', err);
             throw err;
         }
     }
