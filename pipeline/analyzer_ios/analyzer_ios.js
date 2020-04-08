@@ -90,7 +90,7 @@ async function analyse(app, obtainFrameworks = false) {
             trackerSettings.push(setting.name);
     });
 
-    await db.updateAppAnalysis(app, files, manifest, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds);
+    await db.updateAppAnalysis(app, files, manifestJson, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds);
 }
 
 function getWorkerDetails() {
