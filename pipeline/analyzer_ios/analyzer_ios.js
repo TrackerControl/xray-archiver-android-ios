@@ -16,7 +16,7 @@ function removeDuplicates(array) {
 }
 
 async function getFiles(appPath) {
-    const { stdout, stderr } = await bashExec(`unzip -l ${appPath} | tail -n+4 | awk -v col=4 '{print $col}'`, { maxBuffer: bufferSize }); // large buffer
+    const { stdout, stderr } = await bashExec(`unzip -l ${appPath} | tail -n+4 | head -n-2 | awk '{print substr($0, index($0, $4))}'`, { maxBuffer: bufferSize }); // large buffer
     if (stderr) {
         logger.err(`could obtain file list from ${appPath}. throwing err.`);
         throw stderr;
