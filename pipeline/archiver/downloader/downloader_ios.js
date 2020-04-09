@@ -10,7 +10,7 @@ const util = require('util');
 const bashExec = util.promisify(require('child_process').exec);
 const db = new (require('../../db/db_ios'))('downloader');
 
-const plistParser = require('plist');
+const plistParser = require('simple-plist');
 const unzip = require('unzipper');
 
 async function ensureDirectoriesExist(directories) {
@@ -249,25 +249,25 @@ async function main() {
         });
 
         for (let filename of filenames) {
-            let raw = ''; // stores the iOS manifest file in plist format, extracted from the ipa
+            let bufs = []; // stores the iOS manifest file in plist format, extracted from the ipa
 
             // use promise to be able to wait for end of data operation
             await new Promise((resolve, reject) => {
                 fs.createReadStream(filename)
-
                 .pipe(unzip.ParseOne(/^Payload\/[^\/]+.app\/Info.plist$/))
 
                 .on('data', (chunk) => {
-                    raw += chunk;
+                    bufs.push(chunk);
                 })
 
                 .on('end', async () => {
                     try {
-                       let plist = plistParser.parse(raw);
+                       let buf = Buffer.concat(bufs);
+                       let plist = plistParser.parse(buf);
 
                        let app = {                       
                            'app': plist.CFBundleIdentifier,
-                           'version': plist.CFBundleShortVersionString,
+                           'version': plist.CFBundleShortVersionString.trim(), // somtimes there's whitespace
                            'store': 'ios',
                            'region': 'gb',
                            'plist': raw,
