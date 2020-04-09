@@ -5,7 +5,7 @@ const logger = require('../util/logger');
 const db = new (require('../db/db'))('downloader');
 const trackerSignatures = require('./tracker_signatures');
 
-const analysisVersion = 1;
+const analysisVersion = 2;
 
 async function analyse(app) {    
     logger.info('Starting analysis attempt for:', app.app);
@@ -62,7 +62,7 @@ async function main() {
         try {
             apps = await db.queryAppsToAnalyse(1000, analysisVersion);
         } catch (err) {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 30000));
             continue;
         }
 

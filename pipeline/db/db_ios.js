@@ -308,7 +308,9 @@ class DB {
                         v.icon, \
                         v.apk_location, \
                         v.apk_location_root, \
-                        v.apk_location_uuid \
+                        v.apk_location_uuid, \
+                        v.manifest, \
+                        v.files \
                     FROM \
                         app_versions v FULL OUTER JOIN playstore_apps p ON (v.id = p.id) \
                     WHERE \

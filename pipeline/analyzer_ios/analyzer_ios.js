@@ -9,16 +9,16 @@ const bashExec = util.promisify(require('child_process').exec);
 const db = new (require('../db/db_ios'))('downloader');
 const trackerSignatures = require('./tracker_signatures');
 
-const bufferSize = 1024 * 2000;
+const bufferSize = 1024 * 10000;
 
-const analysisVersion = 1;
+const analysisVersion = 2;
 
 function removeDuplicates(array) {
     return [...new Set(array)];
 }
 
 async function getFiles(appPath) {
-    const { stdout, stderr } = await bashExec(`unzip -l ${appPath} | tail -n+4 | head -n-2 | awk '{print substr($0, index($0, $4))}'`, { maxBuffer: bufferSize }); // large buffer
+    const { stdout, stderr } = await bashExec(`unzip -l "${appPath}" | tail -n+4 | head -n-2 | awk '{print substr($0, index($0, $4))}'`, { maxBuffer: bufferSize }); // large buffer
     if (stderr) {
         logger.err(`could obtain file list from ${appPath}. throwing err.`);
         throw stderr;
@@ -34,7 +34,11 @@ async function analyse(app, obtainFrameworks = false) {
     const appPath = path.join(app.apk_location, `${app.app}.ipa`);
 
     // Try to obtain list of files in IPA
-    let files = await getFiles(appPath);
+    let files = app.files;
+    if (!files) {
+        console.log('Getting file names..');
+        files = await getFiles(appPath);
+    }
     let fileList = files.join("\n"); // to be able to search over all files
 
     // This method is very slow. 
@@ -42,7 +46,7 @@ async function analyse(app, obtainFrameworks = false) {
         let frameworks = [];    
         try {
             const appName = fileList.match(/Payload\/([^\/]*?)\.app\/$/m)[1];
-            let command = `unzip -p ${appPath} Payload/${appName}.app/${appName} | strings | grep /System/Library/Frameworks`;
+            let command = `unzip -p "${appPath}" "Payload/${appName}.app/${appName}" | strings | grep /System/Library/Frameworks`;
             const { stdout, stderr } = await bashExec(command, { maxBuffer: bufferSize });
             if (stderr) {
                 throw stderr;
@@ -65,9 +69,15 @@ async function analyse(app, obtainFrameworks = false) {
     }
 
     // Read Info.plist.json, which was extracted from .ipa in the iOS downloader
-    const manifestPath = path.join(app.apk_location, `${app.app}.plist.json`);
-    const manifestJson = fs.readFileSync(manifestPath).toString();
-    const manifest = JSON.parse(manifestJson);
+    let manifestJson, manifest;
+    if (!app.manifest) {
+        const manifestPath = path.join(app.apk_location, `${app.app}.plist.json`);
+        manifestJson = fs.readFileSync(manifestPath).toString();
+        manifest = JSON.parse(manifestJson);
+    } else {
+        manifest = app.manifest;
+        manifestJson = JSON.stringify(manifest);
+    }
 
     // Check trackers against known signatures
     let trackers = [];
