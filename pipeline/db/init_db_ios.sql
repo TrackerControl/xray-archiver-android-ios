@@ -25,6 +25,8 @@ create table app_versions(
   hasFirebase               bool                             ,
   hasGAds                   bool                             ,
   files                   text[]                             ,
+  permissions             text[]                             ,
+  frameworks              text[]                             ,
   bundles                 text[]                             ,
   trackers                text[]                             ,
   trackerSettings         text[]                             ,

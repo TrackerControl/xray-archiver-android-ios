@@ -310,9 +310,10 @@ class DB {
                         v.apk_location_root, \
                         v.apk_location_uuid, \
                         v.manifest, \
-                        v.files \
+                        v.files, \
+                        v.frameworks \
                     FROM \
-                        app_versions v FULL OUTER JOIN playstore_apps p ON (v.id = p.id) \
+                        app_versions v FULL OUTER JOIN playstore_apps p ON v.id = p.id \
                     WHERE \
                         (NOT v.analyzed OR analysis_version IS NULL OR (analysis_version IS NOT NULL AND analysis_version < $1)) \
                     AND \
@@ -351,9 +352,9 @@ class DB {
         }
     }
 
-    async updateAppAnalysis(app, files, manifestJson, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds, analysisVersion) {
+    async updateAppAnalysis(app, files, manifestJson, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds, permissions, analysisVersion) {
         try {
-            await this.query('UPDATE app_versions SET analyzed = true, files = $1, manifest = $2, trackers = $3, trackerSettings = $4, bundles = $5, hasFB = $6, hasFirebase = $7, hasGAds = $8, analysis_version = $9 WHERE id = $10', [files, manifestJson, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds, analysisVersion, app.id]);
+            await this.query('UPDATE app_versions SET analyzed = true, files = $1, manifest = $2, trackers = $3, trackerSettings = $4, bundles = $5, hasFB = $6, hasFirebase = $7, hasGAds = $8, permissions = $9, analysis_version = $10 WHERE id = $11', [files, manifestJson, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds, permissions, analysisVersion, app.id]);
         } catch (err) {
             logger.err('Error updating app analysis:', err);
             throw err;

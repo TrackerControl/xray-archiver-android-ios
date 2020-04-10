@@ -1,11 +1,28 @@
 const manifest = [ 
-                   { signature: 'com.google.android.gms.ads', name: 'GAds'},
+                   { signature: 'com.google.android.gms.ads', name: 'GAdMob'},
+                   { signature: 'com.google.android.gms.ads.AD_MANAGER_APP', name: 'GAd Manager'},
                    { signature: 'com.google.firebase', name: 'Firebase'},
                    { signature: 'com.facebook.sdk.ApplicationId', name: 'FB'},
                    { signature: 'com.google.android.c2dm.intent', name: 'GCM'},
                    { signature: 'applovin.sdk.key', name: 'AppLovin'},
                    { signature: 'io.branch.sdk.BranchKey', name: 'branch.io'},
-                   { signature: 'io.fabric.ApiKey', name: 'Fabric'}
+                   { signature: 'io.fabric.ApiKey', name: 'Fabric'},
+                   { signature: 'cn.sharesdk', name: 'ShareSDK'},
+                   { signature: 'net.hockeyapp', name: 'HockeyApp'},
+                   { signature: 'com.appsee.ApiKey', name: 'Appsee'},
+                   { signature: 'unity.build-id', name: 'Unity'},
+                   { signature: 'unity.splash-mode', name: 'Unity'},
+                   { signature: 'unity.splash-enable', name: 'Unity'},
+                   { signature: 'ads.adunit.AdUnitActivity', name: 'Unity Ads'},
+                   { signature: 'com.microsoft.intune.mam.client.app.MAMApplication', name: 'Microsoft Intune'},
+                   { signature: 'com.microsoft.appcenter', name: 'Microsoft App Center'},
+                   { signature: 'com.twitter.sdk', name: 'Twitter'},
+                 ];
+
+const files    = [ 
+                   { signature: 'ADBMobileConfig.json', name: 'Adobe'},
+                   { signature: 'amplifyconfiguration.json', name: 'Amazon'},
+                   { signature: 'awsconfiguration.json', name: 'Amazon'},
                  ];
 
 const settings = [
@@ -20,4 +37,4 @@ const settings = [
                    { signature: 'google_analytics_default_allow_ad_personalization_signals', name: 'Firebase_Analytics_Ads_Disabled', value: 'false' }
                  ];
 
-module.exports = { settings: settings, manifest: manifest };
+module.exports = { settings: settings, manifest: manifest, files: files };

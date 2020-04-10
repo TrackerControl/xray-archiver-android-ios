@@ -306,6 +306,8 @@ class DB {
                         v.store, \
                         v.region, \
                         v.manifest, \
+                        v.files, \
+                        v.apk_location, \
                         v.hasFB, \
                         v.hasFirebase, \
                         v.hasGCM, \
@@ -341,9 +343,9 @@ class DB {
         }
     }
 
-    async updateAppAnalysis(app, trackers, trackerSettings, hasFB, hasFirebase, hasGAds, hasGCM, analysisVersion) {
+    async updateAppAnalysis(app, trackers, trackerSettings, hasFB, hasFirebase, hasGAds, hasGCM, files, analysisVersion) {
         try {
-            await this.query('UPDATE app_versions SET analyzed = true, trackers = $1, trackerSettings = $2, hasFB = $3, hasFirebase = $4, hasGAds = $5, hasGCM = $6, analysis_version = $7 WHERE id = $8', [trackers, trackerSettings, hasFB, hasFirebase, hasGAds, hasGCM, analysisVersion, app.id]);
+            await this.query('UPDATE app_versions SET analyzed = true, trackers = $1, trackerSettings = $2, hasFB = $3, hasFirebase = $4, hasGAds = $5, hasGCM = $6, files = $7, analysis_version = $8 WHERE id = $9', [trackers, trackerSettings, hasFB, hasFirebase, hasGAds, hasGCM, files, analysisVersion, app.id]);
         } catch (err) {
             logger.err('Error updating app analysis:', err);
             throw err;

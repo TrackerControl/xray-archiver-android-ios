@@ -1,12 +1,27 @@
 const manifest = [ 
-                   { signature: 'GADApplicationIdentifier', name: 'GAds'},
+                   { signature: 'GADApplicationIdentifier', name: 'GAdMob'},
+                   { signature: 'GADIsAdManagerApp', name: 'GAd Manager'},
                    { signature: 'FacebookAppID', name: 'FB'},
                    { signature: 'AppLovinSdkKey', name: 'AppLovin'},
                    { signature: 'branch_key', name: 'branch.io'},
-                   { signature: 'Crashlytics', name: 'Fabric'}
+                   { signature: 'Fabric', name: 'Fabric'},
+                   { signature: 'MOBAppKey', name: 'ShareSDK'},
+                   { signature: 'MOBAppSecret', name: 'ShareSDK'},
+                   { signature: 'com.appsee.ApiKey', name: 'Appsee'},
+                   { signature: 'Unity_LoadingActivityIndicatorStyle', name: 'Unity'},
+                   { signature: 'UnityCloudProjectID', name: 'Unity'},
+                   { signature: 'UnityCrashSubmissionURL', name: 'Unity'},
+                   { signature: 'IntuneMAMSettings', name: 'Microsoft Intune'},
+                   { signature: 'appcenter-', name: 'Microsoft App Center'}, // not a tag, URL scheme
+                   { signature: 'twitterkit-', name: 'Twitter'}, // not a tag, URL scheme
                  ];
 
-const files    = [ { signature: 'GoogleService-Info.plist', name: 'Firebase'} ];
+const bundles = [ { signature: 'HockeySDKResources.bundle', name: 'HockeyApp'} ]
+
+const files    = [ { signature: 'GoogleService-Info.plist', name: 'Firebase'},
+                   { signature: 'ADBMobileConfig.json', name: 'Adobe'},
+                   { signature: 'amplifyconfiguration.json', name: 'Amazon'},
+                   { signature: 'awsconfiguration.json', name: 'Amazon'}];
 
 const settings = [ 
                    { signature: 'GADDelayAppMeasurementInit', name: 'GAds_Init_Delayed', value: true },
@@ -21,4 +36,29 @@ const settings = [
                    { signature: 'NSAllowsArbitraryLoads', name: 'NSAllowsArbitraryLoads', value: true }
                  ];
 
-module.exports = { manifest: manifest, files: files, settings: settings };
+const permissions = [
+                    {signature: 'NSPhotoLibraryUsageDescription', name:'PhotoLibraryUsage'},
+                    {signature: 'NSCameraUsageDescription', name:'CameraUsage'},
+                    {signature: 'NSLocationWhenInUseUsageDescription', name:'LocationWhenInUseUsage'},
+                    {signature: 'NSLocationAlwaysUsageDescription', name:'LocationAlwaysUsage'},
+                    {signature: 'NSPhotoLibraryAddUsageDescription', name:'PhotoLibraryAddUsage'},
+                    {signature: 'NSMicrophoneUsageDescription', name:'MicrophoneUsage'},
+                    {signature: 'NSCalendarsUsageDescription', name:'CalendarsUsage'},
+                    {signature: 'NSLocationAlwaysAndWhenInUseUsageDescription', name:'LocationAlwaysAndWhenInUseUsage'},
+                    {signature: 'NSContactsUsageDescription', name:'ContactsUsage'},
+                    {signature: 'NSBluetoothPeripheralUsageDescription', name:'BluetoothPeripheralUsage'},
+                    {signature: 'NSLocationUsageDescription', name:'LocationUsage'}, // DEPRECATED
+                    {signature: 'NSMotionUsageDescription', name:'MotionUsage'},
+                    {signature: 'NSAppleMusicUsageDescription', name:'AppleMusicUsage'},
+                    {signature: 'NSBluetoothAlwaysUsageDescription', name:'BluetoothAlwaysUsage'},
+                    {signature: 'NSFaceIDUsageDescription', name:'FaceIDUsage'},
+                    {signature: 'NSRemindersUsageDescription', name:'RemindersUsage'},
+                    {signature: 'NSSpeechRecognitionUsageDescription', name:'SpeechRecognitionUsage'},
+                    {signature: 'NSHealthUpdateUsageDescription', name:'HealthUpdateUsage'},
+                    {signature: 'NSHealthShareUsageDescription', name:'HealthShareUsage'},
+                    {signature: 'NSSiriUsageDescription', name:'SiriUsage'},
+                    {signature: 'NFCReaderUsageDescription', name:'NFCReaderUsage'},
+                    {signature: 'NSHomeKitUsageDescription', name:'HomeKitUsage'},
+                   ];
+
+module.exports = { manifest: manifest, files: files, settings: settings, bundles: bundles, permissions: permissions };

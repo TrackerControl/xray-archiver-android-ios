@@ -10,8 +10,8 @@ const db = new (require('../db/db_ios'))('downloader');
 const trackerSignatures = require('./tracker_signatures');
 
 const bufferSize = 1024 * 10000;
-
-const analysisVersion = 2;
+const analysisVersion = 4;
+const obtainFrameworks = true;
 
 function removeDuplicates(array) {
     return [...new Set(array)];
@@ -27,7 +27,7 @@ async function getFiles(appPath) {
     return stdout.split('\n').filter(Boolean); // parse, whilst removing empty rows
 }
 
-async function analyse(app, obtainFrameworks = false) {    
+async function analyse(app) {    
     logger.info('Starting analysis attempt for:', app.app);
     await db.updatedAnalyseAttempt(app);
 
@@ -42,16 +42,23 @@ async function analyse(app, obtainFrameworks = false) {
     let fileList = files.join("\n"); // to be able to search over all files
 
     // This method is very slow. 
-    if (obtainFrameworks) {
+    if (!app.frameworks && obtainFrameworks) {
         let frameworks = [];    
         try {
             const appName = fileList.match(/Payload\/([^\/]*?)\.app\/$/m)[1];
-            let command = `unzip -p "${appPath}" "Payload/${appName}.app/${appName}" | strings | grep /System/Library/Frameworks`;
+            // -UU disables unzip unicode support, which caused problems..
+            let command = `unzip -UU -p "${appPath}" "Payload/${appName}.app/${appName}" | strings | grep /System/Library/Frameworks`;
             const { stdout, stderr } = await bashExec(command, { maxBuffer: bufferSize });
             if (stderr) {
                 throw stderr;
             }
-            frameworks = removeDuplicates(stdout.split('\n').filter(Boolean));
+            const frameworkRegexp = RegExp('\/([^\/]*?)\.framework\/','gm');
+            let frameworks = [];
+            let frameworkMatch;
+            while ((frameworkMatch = frameworkRegexp.exec(stdout)) !== null) {
+                frameworks.push(frameworkMatch[1]);
+            }
+            frameworks = removeDuplicates(frameworks);
             await db.updateAppFrameworks(app, frameworks);
         } catch (ex) {
             logger.err(`could not obtain frameworks from ${appPath}. continuing.`, ex);
@@ -82,18 +89,23 @@ async function analyse(app, obtainFrameworks = false) {
     // Check trackers against known signatures
     let trackers = [];
     trackerSignatures.manifest.forEach(signature => {
-        if (manifest[signature.signature])
+        if (manifestJson.includes(signature.signature))
             trackers.push(signature.name);
     });
     trackerSignatures.files.forEach(signature => {
         if (fileList.includes(signature.signature))
             trackers.push(signature.name);
     });
+    trackerSignatures.bundles.forEach(signature => {
+        if (bundles.includes(signature.signature))
+            trackers.push(signature.name);
+    });
+    trackers = removeDuplicates(trackers);
 
     // TODO: Remove, once next analysis done
     let hasFB = trackers.includes('FB');
     let hasFirebase = trackers.includes('Firebase');
-    let hasGAds = trackers.includes('GAds');
+    let hasGAds = trackers.includes('GAdMob');
     
     // Check if the app uses any tracking settings
     let trackerSettings = [];
@@ -102,7 +114,14 @@ async function analyse(app, obtainFrameworks = false) {
             trackerSettings.push(setting.name);
     });
 
-    await db.updateAppAnalysis(app, files, manifestJson, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds, analysisVersion);
+    // Detect permissions
+    let permissions = [];
+    trackerSignatures.permissions.forEach(signature => {
+        if (manifest[signature.signature])
+            permissions.push(signature.name);
+    });
+
+    await db.updateAppAnalysis(app, files, manifestJson, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds, permissions, analysisVersion);
 }
 
 function getWorkerDetails() {
@@ -124,7 +143,8 @@ async function main() {
         try {
             apps = await db.queryAppsToAnalyse(1000, analysisVersion);
         } catch (err) {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            console.log('Waiting for 60');
+            await new Promise((resolve) => setTimeout(resolve, 60000));
             continue;
         }
 
@@ -135,7 +155,7 @@ async function main() {
             }
 
             try {
-                await analyse(app, obtainFrameworks = false).catch((err) => {
+                await analyse(app).catch((err) => {
                     throw err;
                 });
             } catch (err) {

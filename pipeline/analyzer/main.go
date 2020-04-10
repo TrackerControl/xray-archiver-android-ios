@@ -144,7 +144,7 @@ func runServer() {
 	util.CheckDir(util.Cfg.StorageConfig.APKUnpackDirectory, "Unpacked APK directory")
 
 	for {
-		const numWorkers = 2
+		const numWorkers = 4
 		const numJobs = 10
 
 		jobs := make(chan *util.App, numJobs)

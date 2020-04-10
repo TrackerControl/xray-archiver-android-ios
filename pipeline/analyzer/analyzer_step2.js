@@ -1,16 +1,43 @@
 /*
 Download process spawner
 */
+const path = require('path');
 const logger = require('../util/logger');
+const util = require('util');
+const bashExec = util.promisify(require('child_process').exec);
 const db = new (require('../db/db'))('downloader');
 const trackerSignatures = require('./tracker_signatures');
 
-const analysisVersion = 2;
+const bufferSize = 1024 * 10000;
+const analysisVersion = 4;
+
+function removeDuplicates(array) {
+    return [...new Set(array)];
+}
+
+async function getFiles(appPath) {
+    const { stdout, stderr } = await bashExec(`unzip -l "${appPath}" | tail -n+4 | head -n-2 | awk '{print substr($0, index($0, $4))}'`, { maxBuffer: bufferSize }); // large buffer
+    if (stderr) {
+        logger.err(`could obtain file list from ${appPath}. throwing err.`);
+        throw stderr;
+    }
+
+    return stdout.split('\n').filter(Boolean); // parse, whilst removing empty rows
+}
 
 async function analyse(app) {    
     logger.info('Starting analysis attempt for:', app.app);
     await db.updatedAnalyseAttempt(app);
     let manifestJson = JSON.stringify(app.manifest);
+
+    // Try to obtain list of files in IPA
+    const appPath = path.join(app.apk_location, `${app.app}.apk`);
+    let files = app.files;
+    if (!files) {
+        console.log('Getting file names..');
+        files = await getFiles(appPath);
+    }
+    let fileList = files.join("\n"); // to be able to search over all files
 
     // Detect trackers
     let trackers = [];
@@ -18,10 +45,15 @@ async function analyse(app) {
         if (manifestJson.includes(signature.signature))
             trackers.push(signature.name);
     });
+    trackerSignatures.files.forEach(signature => {
+        if (fileList.includes(signature.signature))
+            trackers.push(signature.name);
+    });
+    trackers = removeDuplicates(trackers);
 
     let hasFB = trackers.includes('FB');
     let hasFirebase = trackers.includes('Firebase');
-    let hasGAds = trackers.includes('GAds');
+    let hasGAds = trackers.includes('GAdMob');
     let hasGCM = trackers.includes('GCM');
 
     // Check if the app uses any tracking settings
@@ -40,7 +72,7 @@ async function analyse(app) {
             });
         });
     }
-    await db.updateAppAnalysis(app, trackers, trackerSettings, hasFB, hasFirebase, hasGAds, hasGCM, analysisVersion);
+    await db.updateAppAnalysis(app, trackers, trackerSettings, hasFB, hasFirebase, hasGAds, hasGCM, files, analysisVersion);
 }
 
 function getWorkerDetails() {
@@ -62,7 +94,8 @@ async function main() {
         try {
             apps = await db.queryAppsToAnalyse(1000, analysisVersion);
         } catch (err) {
-            await new Promise((resolve) => setTimeout(resolve, 30000));
+            console.log('Waiting for 60');
+            await new Promise((resolve) => setTimeout(resolve, 60000));
             continue;
         }
 
