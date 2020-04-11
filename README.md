@@ -6,7 +6,7 @@ Stores Application metadata and files, and provides a server API to access the r
 
 ## Software Components
 
-Note: If you want to keep services running, even after exiting your terminal session, you can detach processes by using tools, such as `nohup`:
+Note: If you want to keep services running on your server, even after exiting your terminal session, start tasks with `nohup` as follows:
 
 ```bash
 nohup node pipeline/archiver/explorer/explorer.js > explorer.log &
@@ -101,6 +101,7 @@ echo 'export GOPATH=$HOME/gocode' >> ~/.bashrc
 sudo apt install postgresql
 sudo -u postgres psql -c "CREATE DATABASE xraydb"
 sudo -u postgres psql xraydb < init_db.sql
+sudo -u postgres psql xraydb < init_db_ios.sql
 ```
 
 - You may have to change your database permissions in your `/etc/postgresql/*/main/pg_hba.conf`
@@ -116,13 +117,15 @@ npm install -g google-play-scraper pg
 ```bash
 sudo mkdir /etc/xray
 sudo cp $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/config/example_config.json /etc/xray/config.json
+sudo cp $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/config/example_config.json /etc/xray/config_ios.json
 ```
 
 - Download and compile source
 
 ```bash
 go get github.com/OxfordHCC/xray-archiver-android-ios/pipeline
-$GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/scripts/install.sh
+cd $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline
+./scripts/install.sh
 ```
 
 - Set up token dispenser
