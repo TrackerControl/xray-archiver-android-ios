@@ -112,6 +112,8 @@ sudo -u postgres psql xraydb < init_db_ios.sql
 npm install -g google-play-scraper pg
 ```
 
+- Install `exodus-standalone`, as described at <https://github.com/Exodus-Privacy/exodus-standalone>. Then, update `exodus_path` in your `/etc/xray/config.json`
+
 - Create xray configuration files (and fill in your details)
 
 ```bash
@@ -149,5 +151,3 @@ sudo cp $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/conf
 ```bash
 sudo apt install unzip
 ```
-
-- Install `exodus-standalone`, as described at <https://github.com/Exodus-Privacy/exodus-standalone>. Then, update `exodus_path` in your `/etc/xray/config.json`
