@@ -39,6 +39,7 @@ node pipeline/archiver/retriever/retriever[_ios].js
 
 ### App Downloader
 
+#### Android
 The `App Downloader` fetches Android and Apple app files using the app data that has been collected by the `App Metadata Retriever`.
 
 The script utilises the `GPlayCli` for connecting to the app stores for downloading app files.
@@ -60,10 +61,34 @@ gplaycli -d com.facebook.katana -c /etc/xray/credentials.json -v -p -t
 Then, you can start downloading with:
 
 ```bash
-node pipeline/archiver/downloader/downloader[_ios].js
+node pipeline/archiver/downloader/downloader.js
 ```
 
-**Note: The downloading of iOS needs an additional Windows server, that uploads Apple apps to your X-Ray server. This is not yet documented.**
+#### iOS
+For downloading iOS apps, use our App Store Downloader from <https://github.com/OxfordHCC/app-store-downloader>.
+
+This requires a dedicated Windows machine.
+
+In addition, you may want to add a script to upload the downloaded apps from Windows automatically to your X-Ray instance.
+
+An example bash script could look as follows:
+```
+#!/bin/bash
+
+IPA_FOLDER=...
+
+while true
+do
+	rsync -vz --remove-source-files -e ssh $IPA_FOLDER/*.ipa konrad@fs2:/c/apps/2020/upload
+	sleep 2
+done
+```
+Note that this requires the ability to run bash scripts under Windows.
+
+Afterwards, you can import the uploaded apps from `/c/apps/2020/upload` (in the example) into your X-Ray instance by running
+```bash
+node pipeline/archiver/downloader/downloader_ios.js
+```
 
 ### Database
 
