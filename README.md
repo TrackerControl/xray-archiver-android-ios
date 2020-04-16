@@ -6,7 +6,7 @@ Stores Application metadata and files, and provides a server API to access the r
 
 ## Software Components
 
-Note: If you want to keep services running, even after exiting your terminal session, you can detach processes by using tools, such as `nohup`:
+Note: If you want to keep services running on your server, even after exiting your terminal session, start tasks with `nohup` as follows:
 
 ```bash
 nohup node pipeline/archiver/explorer/explorer.js > explorer.log &
@@ -71,7 +71,7 @@ A Postgres database contains a series of tables required by all elements of the 
 
 Tables for search term data and app meta data are required for each script to function correctly.
 
-An `init_db.sql` file located in the db folder of this project can be used to initial a postgres database (see section  `Installation`).
+An `init_db[_ios].sql` file located in the db folder of this project can be used to initial a postgres database (see section  `Installation`).
 
 ### API Server
 An API server has been developed to allow others to interface with the data collected and generated. Information regarding this API can be found in the [API ReadMe](https://github.com/sociam/xray-archiver/tree/develop/pipeline/apiserv).
@@ -101,6 +101,7 @@ echo 'export GOPATH=$HOME/gocode' >> ~/.bashrc
 sudo apt install postgresql
 sudo -u postgres psql -c "CREATE DATABASE xraydb"
 sudo -u postgres psql xraydb < init_db.sql
+sudo -u postgres psql xraydb < init_db_ios.sql
 ```
 
 - You may have to change your database permissions in your `/etc/postgresql/*/main/pg_hba.conf`
@@ -116,13 +117,15 @@ npm install -g google-play-scraper pg
 ```bash
 sudo mkdir /etc/xray
 sudo cp $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/config/example_config.json /etc/xray/config.json
+sudo cp $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/config/example_config.json /etc/xray/config_ios.json
 ```
 
 - Download and compile source
 
 ```bash
 go get github.com/OxfordHCC/xray-archiver-android-ios/pipeline
-$GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/scripts/install.sh
+cd $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline
+./scripts/install.sh
 ```
 
 - Set up token dispenser
