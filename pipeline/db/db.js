@@ -232,7 +232,7 @@ class DB {
     async queryAppsToDownload(batch) {
         try {
             //const res = await this.query('SELECT * FROM (SELECT * FROM app_versions ORDER BY last_dl_attempt) AS versions FULL OUTER JOIN playstore_apps ON (playstore_apps.id = versions.id ) WHERE NOT downloaded AND free ORDER BY min_installs DESC LIMIT $1 ', [batch]);
-            const res = await this.query('SELECT * FROM (SELECT min(a.id) AS id FROM app_versions AS a JOIN xray2017 AS b ON a.app = b.app GROUP BY a.app HAVING NOT bool_or(downloaded) AND date_part(\'year\', max(last_dl_attempt)) = 1970) AS undownloaded JOIN app_versions as versions ON versions.id = undownloaded.id JOIN playstore_apps ON (playstore_apps.id= versions.id ) WHERE free ORDER BY updated DESC LIMIT $1 ', [batch]);
+            const res = await this.query('SELECT * FROM (SELECT min(a.id) AS id FROM app_versions AS a JOIN xray2017 AS b ON a.app = b.app GROUP BY a.app HAVING NOT bool_or(downloaded)) AS undownloaded JOIN app_versions as versions ON versions.id = undownloaded.id JOIN playstore_apps ON (playstore_apps.id= versions.id ) WHERE free ORDER BY updated DESC LIMIT $1 ', [batch]); // AND date_part(\'year\', max(last_dl_attempt)) = 1970
 
             if (res.rowCount <= 0) {
                 return Promise.reject('No downloads found. Consider slowing down downloader or speeding up scraper');
@@ -306,12 +306,11 @@ class DB {
                         v.store, \
                         v.region, \
                         v.manifest, \
+                        v.exodus_analysis, \
                         v.files, \
-                        v.apk_location, \
-                        v.hasFB, \
-                        v.hasFirebase, \
-                        v.hasGCM, \
-                        v.hasGAds \
+                        v.trackers, \
+                        v.analysis_version, \
+                        v.apk_location \
                     FROM \
                         app_versions v FULL OUTER JOIN playstore_apps p ON (v.id = p.id) \
                     WHERE \
@@ -343,9 +342,18 @@ class DB {
         }
     }
 
-    async updateAppAnalysis(app, trackers, trackerSettings, hasFB, hasFirebase, hasGAds, hasGCM, files, analysisVersion) {
+    async updatedExodus(app, exodus) {
         try {
-            await this.query('UPDATE app_versions SET analyzed = true, trackers = $1, trackerSettings = $2, hasFB = $3, hasFirebase = $4, hasGAds = $5, hasGCM = $6, files = $7, analysis_version = $8 WHERE id = $9', [trackers, trackerSettings, hasFB, hasFirebase, hasGAds, hasGCM, files, analysisVersion, app.id]);
+            await this.query('UPDATE app_versions SET exodus_analysis=$1 WHERE id = $2', [exodus, app.id]);
+        } catch (err) {
+            logger.err('Error updating exodus analysis', err);
+            throw err;
+        }
+    }
+
+    async updateAppAnalysis(app, trackers, trackerSettings, files, analysisVersion) {
+        try {
+            await this.query('UPDATE app_versions SET analyzed = true, trackers = $1, trackerSettings = $2, files = $3, analysis_version = $4 WHERE id = $5', [trackers, trackerSettings, files, analysisVersion, app.id]);
         } catch (err) {
             logger.err('Error updating app analysis:', err);
             throw err;

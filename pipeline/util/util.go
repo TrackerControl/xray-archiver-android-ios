@@ -27,8 +27,6 @@ type App struct {
 	ID, Store, Region, Ver string
 	Path, UnpackDir        string
 	Perms                  []Permission
-	MetaData               []MetaDatum
-    Components             []Component
     Hosts                  []string
 	Packages               []string
 	Icon                   string
@@ -47,15 +45,6 @@ type App struct {
 type Permission struct {
 	ID        string `xml:"name,attr"`
 	MaxSdkVer string `xml:"maxSdkVersion,attr"`
-}
-
-// Meta data information found in APK
-type MetaDatum struct {
-	Name  string `xml:"name,attr"`
-	Value string `xml:"value,attr"`
-}
-type Component struct {
-	Name  string `xml:"name,attr"`
 }
 
 // NewApp Constructs a new app. initialising values based on

@@ -352,9 +352,9 @@ class DB {
         }
     }
 
-    async updateAppAnalysis(app, files, manifestJson, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds, permissions, analysisVersion) {
+    async updateAppAnalysis(app, files, manifestJson, trackers, trackerSettings, bundles, permissions, analysisVersion) {
         try {
-            await this.query('UPDATE app_versions SET analyzed = true, files = $1, manifest = $2, trackers = $3, trackerSettings = $4, bundles = $5, hasFB = $6, hasFirebase = $7, hasGAds = $8, permissions = $9, analysis_version = $10 WHERE id = $11', [files, manifestJson, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds, permissions, analysisVersion, app.id]);
+            await this.query('UPDATE app_versions SET analyzed = true, files = $1, manifest = $2, trackers = $3, trackerSettings = $4, bundles = $5, permissions = $6, analysis_version = $7 WHERE id = $8', [files, manifestJson, trackers, trackerSettings, bundles, permissions, analysisVersion, app.id]);
         } catch (err) {
             logger.err('Error updating app analysis:', err);
             throw err;

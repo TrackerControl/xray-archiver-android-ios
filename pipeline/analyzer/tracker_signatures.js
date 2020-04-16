@@ -1,5 +1,6 @@
 const manifest = [ 
-                   { signature: 'com.google.android.gms.ads', name: 'GAdMob'},
+                   { signature: 'com.google.android.gms.ads.APPLICATION_ID', name: 'GAdMob'},
+                   { signature: 'com.google.android.gms.ads', name: 'GAds SDK'},
                    { signature: 'com.google.android.gms.ads.AD_MANAGER_APP', name: 'GAd Manager'},
                    { signature: 'com.google.firebase', name: 'Firebase'},
                    { signature: 'com.facebook.sdk.ApplicationId', name: 'FB'},

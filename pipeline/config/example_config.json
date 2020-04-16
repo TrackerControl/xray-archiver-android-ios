@@ -44,7 +44,8 @@
         "db": {
             "user": "analyzer",
             "password": ""
-        }
+        },
+        "exodus_path": "~/exodus-standalone/exodus_analyze.py"
     },
     "apiserv": {
         "db": {

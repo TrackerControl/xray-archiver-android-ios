@@ -1,6 +1,8 @@
 /*
-Download process spawner
+Analyzer Android -- Step 2
 */
+
+const config = require('/etc/xray/config.json');
 const path = require('path');
 const logger = require('../util/logger');
 const util = require('util');
@@ -9,14 +11,34 @@ const db = new (require('../db/db'))('downloader');
 const trackerSignatures = require('./tracker_signatures');
 
 const bufferSize = 1024 * 10000;
-const analysisVersion = 4;
+const analysisVersion = 8;
+const aapt2Path = "~/sdk/build-tools/29.0.3/aapt2";
 
 function removeDuplicates(array) {
     return [...new Set(array)];
 }
 
+async function exodusAnalyse(appPath) {
+	const { stdout, stderr } = await bashExec(`python3 ${config.analyzer.exodus_path} --json "${appPath}" 2>&- || true`, { maxBuffer: bufferSize });
+    // In the call of exodus, we add two things:
+    // 1) we drop stderr, since to suppress exodus debug info
+	// 2) we add || true because exodus returns the number of trackers as exit code, which node.js interprets as an error
+    return stdout;
+}
+
+async function getStrings(appPath) {
+    //const { stdout, stderr } = await bashExec(`apkanalyzer resources names --type string --config default "${appPath}"`, { maxBuffer: bufferSize });
+    const { stdout, stderr } = await bashExec(`${aapt2Path} d strings "${appPath}"`, { maxBuffer: bufferSize });
+    if (stderr) {
+        logger.err(`could obtain file list from ${appPath}. continuing.`);
+        return "";
+    }
+
+    return stdout;
+}
+
 async function getFiles(appPath) {
-    const { stdout, stderr } = await bashExec(`unzip -l "${appPath}" | tail -n+4 | head -n-2 | awk '{print substr($0, index($0, $4))}'`, { maxBuffer: bufferSize }); // large buffer
+    const { stdout, stderr } = await bashExec(`unzip -l "${appPath}" | tail -n+4 | head -n-2 | awk '{print substr($0, index($0, $4))}'`, { maxBuffer: bufferSize });
     if (stderr) {
         logger.err(`could obtain file list from ${appPath}. throwing err.`);
         throw stderr;
@@ -27,7 +49,7 @@ async function getFiles(appPath) {
 
 async function analyse(app) {    
     logger.info('Starting analysis attempt for:', app.app);
-    await db.updatedAnalyseAttempt(app);
+    // await db.updatedAnalyseAttempt(app);
     let manifestJson = JSON.stringify(app.manifest);
 
     // Try to obtain list of files in IPA
@@ -49,12 +71,22 @@ async function analyse(app) {
         if (fileList.includes(signature.signature))
             trackers.push(signature.name);
     });
+    if (!app.analysis_version
+            || app.analysis_version < 7) {
+        /*let strings = await getStrings(appPath);
+        if (strings.includes('ca-app-pub-'))
+            trackers.push('GAdMob_Legacy');*/
+    } else {
+        if (app.trackers.includes('GAdMob_Legacy'))
+            trackers.push('GAdMob_Legacy');
+    }
     trackers = removeDuplicates(trackers);
 
-    let hasFB = trackers.includes('FB');
-    let hasFirebase = trackers.includes('Firebase');
-    let hasGAds = trackers.includes('GAdMob');
-    let hasGCM = trackers.includes('GCM');
+    if (!app.exodus_analysis) {
+    	let exodus = await exodusAnalyse(appPath);
+    	await db.updatedExodus(app, JSON.parse(exodus));
+    }
+
 
     // Check if the app uses any tracking settings
     let metaData = app.manifest['manifest']['application']['meta-data'];
@@ -72,7 +104,7 @@ async function analyse(app) {
             });
         });
     }
-    await db.updateAppAnalysis(app, trackers, trackerSettings, hasFB, hasFirebase, hasGAds, hasGCM, files, analysisVersion);
+    await db.updateAppAnalysis(app, trackers, trackerSettings, files, analysisVersion);
 }
 
 function getWorkerDetails() {

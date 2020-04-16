@@ -146,3 +146,5 @@ sudo cp $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/conf
 ```bash
 sudo apt install unzip
 ```
+
+- Install `exodus-standalone`, as described at <https://github.com/Exodus-Privacy/exodus-standalone>. Then, update `exodus_path` in your `/etc/xray/config.json`

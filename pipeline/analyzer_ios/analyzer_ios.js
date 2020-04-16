@@ -1,5 +1,5 @@
 /*
-Download process spawner
+Analyzer iOS
 */
 const path = require('path');
 const fs = require('fs-extra');
@@ -101,11 +101,6 @@ async function analyse(app) {
             trackers.push(signature.name);
     });
     trackers = removeDuplicates(trackers);
-
-    // TODO: Remove, once next analysis done
-    let hasFB = trackers.includes('FB');
-    let hasFirebase = trackers.includes('Firebase');
-    let hasGAds = trackers.includes('GAdMob');
     
     // Check if the app uses any tracking settings
     let trackerSettings = [];
@@ -121,7 +116,7 @@ async function analyse(app) {
             permissions.push(signature.name);
     });
 
-    await db.updateAppAnalysis(app, files, manifestJson, trackers, trackerSettings, bundles, hasFB, hasFirebase, hasGAds, permissions, analysisVersion);
+    await db.updateAppAnalysis(app, files, manifestJson, trackers, trackerSettings, bundles, permissions, analysisVersion);
 }
 
 function getWorkerDetails() {

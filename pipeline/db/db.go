@@ -130,20 +130,6 @@ func AddPerms(app *util.App) error {
 	return nil
 }
 
-
-// SetTrackers is a function that sets the tracker fields of the DB.
-func SetTrackers(id int64, hasFB bool, hasFirebase bool, hasGCM bool, hasGAds bool) error {
-	if !useDB || id == 0 {
-		return nil
-	}
-
-	rows, err := db.Query("UPDATE app_versions SET hasFB = $1, hasFirebase = $2, hasGCM = $3, hasGAds = $4 WHERE id = $5", hasFB, hasFirebase, hasGCM, hasGAds, id)
-	if rows != nil {
-		rows.Close()
-	}
-	return err
-}
-
 // SetManifest is a function that sets the manifest field of the DB.
 func SetManifest(id int64, manifest string) error {
 	if !useDB || id == 0 {
@@ -1226,7 +1212,7 @@ func GetAppsToAnalyze(limit int64) ([]AppVersion, error) {
 		FROM
 			app_versions v FULL OUTER JOIN playstore_apps p ON (v.id = p.id)
 		WHERE
-			NOT v.analyzed
+			(NOT v.analyzed OR v.manifest IS NULL)
 		AND
 			v.downloaded
 		ORDER BY

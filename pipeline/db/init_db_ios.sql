@@ -21,9 +21,6 @@ create table app_versions(
   region                    text                     not null,
   version                   text                     not null,
   manifest                  json                             , -- Info.plist converted to JSON
-  hasFB                     bool                             ,
-  hasFirebase               bool                             ,
-  hasGAds                   bool                             ,
   files                   text[]                             ,
   permissions             text[]                             ,
   frameworks              text[]                             ,

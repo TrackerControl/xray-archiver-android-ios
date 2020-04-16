@@ -50,12 +50,6 @@ func analyze(app *util.App) error {
 	if err != nil {
 		fmt.Println("Error parsing manifest: ", err.Error())
 	} else {
-		app.MetaData = manifest.Application.MetaData
-		// fmt.Printf("Manifest meta data found: %v\n", app.MetaData)
-
-		app.Components = manifest.getComponents()
-		// fmt.Printf("Components found: %v\n", app.Components)
-
 		app.Perms = manifest.getPerms()
 		fmt.Printf("Permissions found: %v\n", app.Perms)
 		err = db.AddPerms(app)
@@ -64,9 +58,6 @@ func analyze(app *util.App) error {
 		}
   		// fmt.Println(manifestJson)
 		if manifestJson != "" {
-			hasFB, hasFirebase, hasGCM, hasGAds := simpleTrackers(manifestJson)
-			fmt.Println("(hasFB, hasFirebase, hasGCM, hasGAds) = ", hasFB, hasFirebase, hasGCM, hasGAds)
-			db.SetTrackers(app.DBID, hasFB, hasFirebase, hasGCM, hasGAds)
 			db.SetManifest(app.DBID, manifestJson)
 		}
 		if gotIcon {
@@ -145,7 +136,7 @@ func runServer() {
 
 	for {
 		const numWorkers = 4
-		const numJobs = 10
+		const numJobs = 20
 
 		jobs := make(chan *util.App, numJobs)
 		results := make(chan bool, numJobs)
