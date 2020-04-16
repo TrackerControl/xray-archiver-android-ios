@@ -75,7 +75,7 @@ An example bash script could look as follows:
 ```
 #!/bin/bash
 
-IPA_FOLDER=C:/Users/Konrad/Music/iTunes/iTunes\Media/Downloads
+IPA_FOLDER=C:/Users/Konrad/Music/iTunes/iTunes\ Media/Downloads
 
 while true
 do
