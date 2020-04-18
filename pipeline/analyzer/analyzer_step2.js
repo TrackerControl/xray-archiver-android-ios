@@ -19,7 +19,7 @@ function removeDuplicates(array) {
 }
 
 async function exodusAnalyse(appPath) {
-	const { stdout, stderr } = await bashExec(`python3 ${config.analyzer.exodus_path} --json "${appPath}" 2>&- || true`, { maxBuffer: bufferSize });
+	const { stdout, stderr } = await bashExec(`export LC_ALL=C.UTF-8 && export LANG=C.UTF-8 && python3 ${config.analyzer.exodus_path} --json "${appPath}" 2>&- || true`, { maxBuffer: bufferSize });
     // In the call of exodus, we add two things:
     // 1) we drop stderr, since to suppress exodus debug info
 	// 2) we add || true because exodus returns the number of trackers as exit code, which node.js interprets as an error
@@ -49,7 +49,7 @@ async function getFiles(appPath) {
 
 async function analyse(app) {    
     logger.info('Starting analysis attempt for:', app.app);
-    // await db.updatedAnalyseAttempt(app);
+    await db.updatedAnalyseAttempt(app);
     let manifestJson = JSON.stringify(app.manifest);
 
     // Try to obtain list of files in IPA
