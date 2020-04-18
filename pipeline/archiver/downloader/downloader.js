@@ -202,7 +202,7 @@ function downloadApp(appData, appSavePath) {
 
     const spw = require('child-process-promise').spawn;
     logger.debug(`Passing args to downloader${args}`);
-    const apkDownloader = spw('gplaycli', args);
+    const apkDownloader = spw('gplaycli', args, { capture: [ 'stdout', 'stderr' ]});
 
     const downloadProcess = apkDownloader.childProcess;
 
@@ -213,7 +213,7 @@ function downloadApp(appData, appSavePath) {
         const prefix = `'DL process ${downloadProcess.pid} stdout: `;
         logger.debug(prefix + data.toString().replace(/\n/g, `\n${prefix}`));
     });
-
+    
     downloadProcess.stderr.on('data', (data) => {
         const prefix = `'DL process ${downloadProcess.pid} stderr: `;
         logger.warning(prefix + data.toString().replace(/\n/g, `\n${prefix}`));
@@ -227,6 +227,7 @@ async function download(app) {
     // Could be move to the call to DL app. but this is where the whole DL process starts.
     db.updatedDlAttempt(app);
     let appSaveInfo;
+
     try {
         appSaveInfo = await resolveAPKSaveInfo(app);
     } catch (err) {
@@ -237,6 +238,12 @@ async function download(app) {
     try {
         await downloadApp(app, appSaveInfo.appSavePath);
     } catch (err) {
+        if (err.stderr.toString().includes("Item not available")
+              || err.stderr.toString().includes("Item not found")
+              || err.stderr.toString().includes("not supported in your country")) {
+            console.log('Item not available');
+            db.updatedNotAvailable(app, true);
+        }
         logger.debug('Attempting to remove created dir');
         await fs.rmdir(appSaveInfo.appSavePath).catch(logger.warning);
         return Promise.reject(`Downloading failed with err: ${err}`);
@@ -288,7 +295,11 @@ async function main() {
     for (;;) {
         let apps;
         try {
-            apps = await db.queryAppsToDownload(10000);
+            if (isWorker) {
+                apps = await db.queryAppsToDownload(100000);
+            } else {
+                apps = await db.queryAppsToDownload(1000);
+            }
         } catch (err) {
             await new Promise((resolve) => setTimeout(resolve, 1000));
             continue;
