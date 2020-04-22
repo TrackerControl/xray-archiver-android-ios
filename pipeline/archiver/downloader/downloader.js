@@ -222,6 +222,15 @@ function downloadApp(appData, appSavePath) {
     return apkDownloader;
 }
 
+function checkError(app, err) {
+    if (err.includes("Item not available")
+          || err.includes("Item not found")
+          || err.includes("not supported in your country")) {
+        console.log('Item not available');
+        db.updatedNotAvailable(app, true);
+    }
+}
+
 async function download(app) {
     logger.info('Starting download attempt for:', app.app);
     // Could be move to the call to DL app. but this is where the whole DL process starts.
@@ -236,14 +245,10 @@ async function download(app) {
     }
 
     try {
-        await downloadApp(app, appSaveInfo.appSavePath);
+        result = await downloadApp(app, appSaveInfo.appSavePath);
+        checkError(app, result.stderr);
     } catch (err) {
-        if (err.stderr.toString().includes("Item not available")
-              || err.stderr.toString().includes("Item not found")
-              || err.stderr.toString().includes("not supported in your country")) {
-            console.log('Item not available');
-            db.updatedNotAvailable(app, true);
-        }
+        checkError(app, err.stderr);
         logger.debug('Attempting to remove created dir');
         await fs.rmdir(appSaveInfo.appSavePath).catch(logger.warning);
         return Promise.reject(`Downloading failed with err: ${err}`);
@@ -296,7 +301,7 @@ async function main() {
         let apps;
         try {
             if (isWorker) {
-                apps = await db.queryAppsToDownload(100000);
+                apps = await db.queryAppsToDownload(20000);
             } else {
                 apps = await db.queryAppsToDownload(1000);
             }
