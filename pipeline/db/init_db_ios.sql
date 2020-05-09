@@ -97,7 +97,8 @@ create table playstore_apps(
   video                  text                                                 ,
   recent_changes       text[]                                                 ,
   crawl_date             date                                         not null,
-  permissions          text[]
+  permissions          text[]                                                 ,
+  released               date
 );
 
 create table search_terms(

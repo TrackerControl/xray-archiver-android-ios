@@ -232,7 +232,7 @@ class DB {
     async queryAppsToDownload(batch) {
         try {
             //const res = await this.query('SELECT * FROM (SELECT * FROM app_versions ORDER BY last_dl_attempt) AS versions FULL OUTER JOIN playstore_apps ON (playstore_apps.id = versions.id ) WHERE NOT downloaded AND free ORDER BY min_installs DESC LIMIT $1 ', [batch]);
-            const res = await this.query('SELECT * FROM (SELECT min(a.id) AS id FROM app_versions AS a JOIN xray2017 AS b ON a.app = b.app GROUP BY a.app HAVING NOT bool_or(downloaded)) AS undownloaded JOIN app_versions as versions ON versions.id = undownloaded.id JOIN playstore_apps ON (playstore_apps.id= versions.id ) WHERE free AND not not_available ORDER BY last_dl_attempt ASC LIMIT $1 ', [batch]); // AND date_part(\'year\', max(last_dl_attempt)) = 1970
+            const res = await this.query('SELECT * FROM (SELECT min(a.id) AS id FROM app_versions a GROUP BY a.app HAVING NOT bool_or(downloaded)) AS undownloaded JOIN app_versions as versions ON versions.id = undownloaded.id JOIN playstore_apps ON (playstore_apps.id= versions.id ) WHERE free AND not not_available ORDER BY last_dl_attempt ASC, released DESC LIMIT $1 ', [batch]);
 
             if (res.rowCount <= 0) {
                 return Promise.reject('No downloads found. Consider slowing down downloader or speeding up scraper');
@@ -588,7 +588,7 @@ class DB {
                 }
 
                 await client.lquery(
-                    'INSERT INTO playstore_apps VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, current_date)', [
+                    'INSERT INTO playstore_apps VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, current_date, null, $21)', [
                     verId,
                     app.title,
                     app.summary,
@@ -609,6 +609,7 @@ class DB {
                     app.screenshots,
                     app.video,
                     Array.isArray(app.recentChanges) ? app.recentChanges : [app.recentChanges],
+                    new Date(app.released),
                 ]);
             }
             await client.lquery('COMMIT');

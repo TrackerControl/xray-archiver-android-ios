@@ -580,7 +580,7 @@ class DB {
                 }
 
                 await client.lquery(
-                    'INSERT INTO playstore_apps VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, current_date)', [
+                    'INSERT INTO playstore_apps VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, current_date, $21)', [
                     verId,
                     app.title,
                     null, /* ToDo: Summary does not exist on iOS */
@@ -601,6 +601,7 @@ class DB {
                     app.screenshots,
                     null, /* No video on iOS */
                     [app.releaseNotes],
+                    new Date(app.released)
                 ]);
             }
             await client.lquery('COMMIT');
