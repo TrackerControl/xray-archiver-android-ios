@@ -5,17 +5,19 @@ begin;
 ---------------------------------------------------------------------------------------------------
 
 --Setup materilized view namespace
-create schema mat_view
+create schema mat_view;
+
+GRANT USAGE ON SCHEMA mat_view TO apiserv;
 
 --Ensure extension for index matching is setup
-create extension pg_trgm from unpackaged;
+create extension pg_trgm;
 
 -----
 -- Access speed for playstore apps data
 -----
 drop table if exists mat_view.apps_play_data cascade;
 
-create materilized view mat_view.apps_play_data as select
+create materialized view mat_view.apps_play_data as select
 a.id, a.title, a.summary, a.description, a.store_url, a.price, a.free, a.rating,
 	a.num_reviews, a.genre, a.family_genre, a.min_installs, a.max_installs, a.updated,
 	a.android_ver, a.content_rating, a.recent_changes, v.app, v.store, v.region,
@@ -24,7 +26,7 @@ a.id, a.title, a.summary, a.description, a.store_url, a.price, a.free, a.rating,
 	FULL OUTER join developers d on (a.developer = d.id)
 	FULL OUTER join app_hosts h on (a.id = h.id)
 	FULL OUTER join app_perms p on (a.id = p.id)
-	FULL OUTER join app_packages pkg  on (a.id = pkg.id)  order by max_installs;
+	FULL OUTER join app_packages pkg  on (a.id = pkg.id)  order by min_installs;
 
 -- Index for the App Title, eg. Facebook, Snapchat, Angry Birds
 create index apps_title_gin_trgm_idx on mat_view.apps_play_data USING GIN (title gin_trgm_ops);

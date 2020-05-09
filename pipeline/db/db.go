@@ -973,7 +973,7 @@ func QueryAll(
 
 	queryStr = "SELECT " +
 		"id, title, summary, description, store_url, price, free, rating, " +
-		"num_reviews, genre, family_genre, min_installs, max_installs, updated, " +
+		"num_reviews, genre, family_genre, min_installs, updated, " +
 		"android_ver, content_rating, recent_changes, app, store, region, " +
 		"version, icon, analyzed, email, name, store_site, site, hosts, permissions, " +
 		"packages " +
@@ -1083,7 +1083,7 @@ func QueryAll(
 		shouldAnalyze = ""
 	}
 
-	queryStr += shouldAnalyze + " ORDER BY max_installs using> "
+	queryStr += shouldAnalyze + " ORDER BY min_installs using> "
 	queryStr += "LIMIT $" + strconv.Itoa(numParam) + " "
 	numParam++
 	queryStr += "OFFSET $" + strconv.Itoa(numParam)
@@ -1134,7 +1134,6 @@ func QueryAll(
 			&genre,
 			&famGenre,
 			&playInf.Installs.Min,
-			&playInf.Installs.Max,
 			&playInf.Updated,
 			&playInf.AndroidVer,
 			&playInf.ContentRating,
@@ -1217,7 +1216,7 @@ func GetAppsToAnalyze(limit int64) ([]AppVersion, error) {
 			v.downloaded
 		ORDER BY
 			v.last_analyze_attempt NULLS FIRST,
-			p.max_installs USING >
+			p.min_installs USING >
 		LIMIT $1`, limit) // AND family_genre IS NOT NULL
 	fmt.Println("DB Query Made.")
 	if rows != nil {

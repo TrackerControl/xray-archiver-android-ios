@@ -13,7 +13,7 @@ create materialized view genre_host_averages as
   select category, host_count, app_count, host_count/app_count::float as host_avg from (
     select p.genre as category, sum(array_length(v.hosts,1)
   ) as host_count, count(p.genre) as app_count
-  from playstore_apps p inner join app_hosts v on (p.id = v.id)
+  from playstore_apps p inner join app_hosts v on (p.id = v.id) where genre is not null
     group by genre) as genre_freq;
 
 grant select on genre_host_averages to apiserv;
@@ -27,7 +27,7 @@ grant select on genre_host_averages to apiserv;
 drop materialized view if exists genre_counts;
 create materialized view genre_counts as
   select genre, count(*) from playstore_apps p inner join app_versions v on (p.id = v.id) 
-    where v.analyzed = true
+    where v.analyzed = true and genre is not null
     group by genre;
 grant select on genre_counts to apiserv;
 
@@ -123,10 +123,10 @@ create materialized view company_genre_coverage as
 select company, company_count, genre, genre_total, (company_count/genre_total::float)*100 as coverage_pct from (
   select  count(dac.company) as company_count, dac.company, p.genre, genre_totals.genre_total from distinct_app_companies dac, playstore_apps p, app_versions v, (
     select count(*) as genre_total, genre from  playstore_apps p, app_versions v
-      where v.id  = p.id and v.analyzed = true
+      where v.id  = p.id and v.analyzed = true and genre is not null
       group by genre
   ) as genre_totals
-    where dac.id = v.id and dac.id = p.id and v.analyzed = true and genre_totals.genre = p.genre
+    where dac.id = v.id and dac.id = p.id and v.analyzed = true and genre_totals.genre = p.genre and p.genre is not null
     group by p.genre, dac.company, genre_totals.genre_total
     order by p.genre, company_count
 ) as totals;
