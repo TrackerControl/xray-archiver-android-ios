@@ -9,6 +9,19 @@ The API allows you to build queries using the url and a series of parameters. Al
 
 Whilst default values are used, many are actually default to be empty strings. This means that queries are not restricted by default. Details of this can be found down the page.
 
+## Local Testing
+
+First, build and start the API server:
+```bash
+cd pipeline/apiserv
+go build
+./apiserv &
+```
+Then, issue a request:
+```bash
+curl -H "Accept: application/json" "localhost:8118/api/apps?appId=vision.safe.kids&isFull=1" -H 'Connection: keep-alive' -H 'pragma: no-cache' --compressed
+```
+
 ## Parameters
 There are a series of parameters that can be used. Each of these can be chained together to produce a single query to the xray database.
 
