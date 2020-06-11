@@ -7,8 +7,6 @@ let retriever = require('google-play-scraper');
 let throttle = 10;
 let timeout = 10 * 1000;
 
-let notFound = [];
-
 function sleep(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -34,9 +32,6 @@ function sleep(ms) {
         try {
             await Promise.all( res.rows.map( app => {
                 let id = app.app;
-                if (notFound.includes(id))
-                    return;
-
                 return retriever.app({
                     appId: id, 
                     throttle: throttle,
@@ -48,16 +43,27 @@ function sleep(ms) {
                             'UPDATE playstore_apps \
                              SET offersIAP = $1 \
                              WHERE id = $2',
-                             [appData.offersIAP, app.id]
+                             [appData.offersIAP ? 1 : 0, app.id]
                         );
                     } else {
                         logger.debug(`nothing to update for ${appData.title} in DB`);
+                        await db.query(
+                            'UPDATE playstore_apps \
+                             SET offersIAP = $1 \
+                             WHERE id = $2',
+                             [-2, app.id]
+                        );
                     }
                 },
                 async (err) => {
                     logger.err(`Error Requesting processing: ${app.app} (${id}). Error: ${err}`);
                     if (err.message.includes('App not found (404)')) {
-                        notFound.append(app.app);
+                        await db.query(
+                            'UPDATE playstore_apps \
+                             SET offersIAP = $1 \
+                             WHERE id = $2',
+                             [-1, app.id]
+                        );
                         logger.err('APP NOT FOUND 404');
                     } else {
                         throw err;
