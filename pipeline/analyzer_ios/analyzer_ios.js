@@ -10,7 +10,7 @@ const db = new (require('../db/db_ios'))('downloader');
 const trackerSignatures = require('./tracker_signatures');
 
 const bufferSize = 1024 * 10000;
-const analysisVersion = 4;
+const analysisVersion = 5;
 const obtainFrameworks = true;
 
 function removeDuplicates(array) {
@@ -65,6 +65,24 @@ async function analyse(app) {
         }
     } else {
         console.log('Skipping frameworks.');
+    }
+
+    // Scan whole IPA for AdSupport, to check if a subpackage requests AdSupport
+    let hasAdId;
+    {
+        let command = `unzip -UU -p "${appPath}" | grep "ASIdentifierManager\\|AdSupport"`;
+        try {
+            const { stdout, stderr } = await bashExec(command, { maxBuffer: bufferSize });
+            hasAdId = true;
+        } catch (ex) {
+            hasAdId = false;
+        }
+
+        if (hasAdId && app.frameworks && !app.frameworks.includes("AdSupport") && !app.frameworks.includes("AdSupport_Subpackage")) {
+            app.frameworks.push("AdSupport_Subpackage");
+            console.log('############################# FOUND ADID in SUBPACKAGE');
+            await db.updateAppFrameworks(app, app.frameworks);
+        }
     }
 
     // Check what bundles the app contains
