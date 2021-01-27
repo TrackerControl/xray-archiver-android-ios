@@ -11,6 +11,7 @@ const manifest = [
                    { signature: 'cn.sharesdk', name: 'ShareSDK'},
                    { signature: 'net.hockeyapp', name: 'HockeyApp'},
                    { signature: 'com.appsee.ApiKey', name: 'Appsee'},
+                   { signature: 'com.openinstall.APP_KEY', name: 'openinstall'},
                    { signature: 'unity.build-id', name: 'Unity'},
                    { signature: 'unity.splash-mode', name: 'Unity'},
                    { signature: 'unity.splash-enable', name: 'Unity'},

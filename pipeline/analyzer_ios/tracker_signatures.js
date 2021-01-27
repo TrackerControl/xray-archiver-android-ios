@@ -8,6 +8,7 @@ const manifest = [
                    { signature: 'MOBAppKey', name: 'ShareSDK'},
                    { signature: 'MOBAppSecret', name: 'ShareSDK'},
                    { signature: 'com.appsee.ApiKey', name: 'Appsee'},
+                   { signature: 'com.openinstall.APP_KEY', name: 'openinstall'},
                    { signature: 'Unity_LoadingActivityIndicatorStyle', name: 'Unity'},
                    { signature: 'UnityCloudProjectID', name: 'Unity'},
                    { signature: 'UnityCrashSubmissionURL', name: 'Unity'},

@@ -11,7 +11,7 @@ const db = new (require('../db/db'))('downloader');
 const trackerSignatures = require('./tracker_signatures');
 
 const bufferSize = 1024 * 10000;
-const analysisVersion = 8;
+const analysisVersion = 9;
 const aapt2Path = "~/sdk/build-tools/29.0.3/aapt2";
 
 function removeDuplicates(array) {
@@ -82,7 +82,7 @@ async function analyse(app) {
     }
     trackers = removeDuplicates(trackers);
 
-    if (!app.exodus_analysis) {
+    if (!app.exodus_analysis && analysisVersion >= 8) {
     	let exodus = await exodusAnalyse(appPath);
     	await db.updatedExodus(app, JSON.parse(exodus));
     }
@@ -124,9 +124,9 @@ async function main() {
     for (;;) {
         let apps;
         try {
-            apps = await db.queryAppsToAnalyse(1000, analysisVersion);
+            apps = await db.queryAppsToAnalyse(10000, analysisVersion);
         } catch (err) {
-            console.log('Waiting for 60');
+            console.log('No more apps. Waiting for 60.');
             await new Promise((resolve) => setTimeout(resolve, 60000));
             continue;
         }
@@ -148,6 +148,9 @@ async function main() {
                 );
             }
         }
+
+        console.log('Done with app batch. Waiting for 60.');
+        await new Promise((resolve) => setTimeout(resolve, 60000));
     }
 }
 

@@ -10,7 +10,7 @@ const db = new (require('../db/db_ios'))('downloader');
 const trackerSignatures = require('./tracker_signatures');
 
 const bufferSize = 1024 * 10000;
-const analysisVersion = 5;
+const analysisVersion = 6;
 const obtainFrameworks = true;
 
 function removeDuplicates(array) {
@@ -42,7 +42,8 @@ async function analyse(app) {
     let fileList = files.join("\n"); // to be able to search over all files
 
     // This method is very slow. 
-    if (!app.frameworks && obtainFrameworks) {
+    // TODO: There have been some issues with apps that use UNICODE characters. Example: com.langteng.verticalddz
+    if ((!app.frameworks || app.frameworks.length == 0) && obtainFrameworks) {
         let frameworks = [];    
         try {
             const appName = fileList.match(/Payload\/([^\/]*?)\.app\/$/m)[1];
@@ -65,6 +66,7 @@ async function analyse(app) {
         }
     } else {
         console.log('Skipping frameworks.');
+        app.frameworks = ['failed_parsing_frameworks'];
     }
 
     // Scan whole IPA for AdSupport, to check if a subpackage requests AdSupport
@@ -154,7 +156,7 @@ async function main() {
     for (;;) {
         let apps;
         try {
-            apps = await db.queryAppsToAnalyse(1000, analysisVersion);
+            apps = await db.queryAppsToAnalyse(10000, analysisVersion);
         } catch (err) {
             console.log('Waiting for 60');
             await new Promise((resolve) => setTimeout(resolve, 60000));
@@ -178,6 +180,8 @@ async function main() {
                 );
             }
         }
+
+        await new Promise((resolve) => setTimeout(resolve, 60000));
     }
 }
 
