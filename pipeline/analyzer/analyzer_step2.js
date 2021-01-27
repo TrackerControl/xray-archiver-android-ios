@@ -65,7 +65,7 @@ async function analyse(app) {
     let trackers = [];
     trackerSignatures.manifest.forEach(signature => {
         if (manifestJson.includes(signature.signature))
-            trackers.pus1(signature.name);
+            trackers.push(signature.name);
     });
     trackerSignatures.files.forEach(signature => {
         if (fileList.includes(signature.signature))
