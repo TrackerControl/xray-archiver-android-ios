@@ -3,6 +3,7 @@ const manifest = [
                    { signature: 'com.google.android.gms.ads', name: 'GAds SDK'},
                    { signature: 'com.google.android.gms.ads.AD_MANAGER_APP', name: 'GAd Manager'},
                    { signature: 'com.google.firebase', name: 'Firebase'},
+                   { signature: 'com.google.android.gms.measurement.AppMeasurementService', name: 'Firebase_AppMeasurementService'},
                    { signature: 'com.facebook.sdk.ApplicationId', name: 'FB'},
                    { signature: 'com.google.android.c2dm.intent', name: 'GCM'},
                    { signature: 'applovin.sdk.key', name: 'AppLovin'},
@@ -29,7 +30,6 @@ const files    = [
 
 const settings = [
                    { signature: 'com.google.android.gms.ads.DELAY_APP_MEASUREMENT_INIT', name: 'GAds_Init_Delayed', value: 'true' },
-                   { signature: 'com.google.android.gms.measurement.AppMeasurementService', name: 'Firebase_AppMeasurementService', value: 'true' },
                    { signature: 'com.facebook.sdk.AutoLogAppEventsEnabled', name: 'FB_Events_Delayed', value: 'false' },
                    { signature: 'com.facebook.sdk.AutoInitEnabled', name: 'FB_Init_Delayed', value: 'false' },
                    { signature: 'com.facebook.sdk.AdvertiserIDCollectionEnabled', name: 'FB_ADID_Disabled', value: 'false' },

@@ -11,7 +11,7 @@ const db = new (require('../db/db'))('downloader');
 const trackerSignatures = require('./tracker_signatures');
 
 const bufferSize = 1024 * 10000;
-const analysisVersion = 10;
+const analysisVersion = 11;
 const aapt2Path = "~/sdk/build-tools/29.0.3/aapt2";
 
 function removeDuplicates(array) {
@@ -65,7 +65,7 @@ async function analyse(app) {
     let trackers = [];
     trackerSignatures.manifest.forEach(signature => {
         if (manifestJson.includes(signature.signature))
-            trackers.push(signature.name);
+            trackers.pus1(signature.name);
     });
     trackerSignatures.files.forEach(signature => {
         if (fileList.includes(signature.signature))
