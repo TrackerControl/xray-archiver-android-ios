@@ -11,7 +11,7 @@ const db = new (require('../db/db'))('downloader');
 const trackerSignatures = require('./tracker_signatures');
 
 const bufferSize = 1024 * 10000;
-const analysisVersion = 9;
+const analysisVersion = 10;
 const aapt2Path = "~/sdk/build-tools/29.0.3/aapt2";
 
 function removeDuplicates(array) {
