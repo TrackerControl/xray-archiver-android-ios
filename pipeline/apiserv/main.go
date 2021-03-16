@@ -107,7 +107,7 @@ func hello(w http.ResponseWriter, r *http.Request) {
 	writeErr(w, r.Header.Get("Accept"), http.StatusNotFound, "not_found", "Nah mate!")
 }
 
-var appPrefixRe = regexp.MustCompile("^/api/apps/")
+var appPrefixRe = regexp.MustCompile("^/api2020/apps/")
 var dbIDRe = regexp.MustCompile("^\\d+$")
 var appIDRe = regexp.MustCompile("^[[:alpha:]][\\w$]*(\\.[[:alpha:]][\\w$]*)*$")
 
@@ -513,9 +513,10 @@ func appsEndpoint(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		if len(titles) == 0 {
+        // Disallow searches only for developers
+		/*if len(titles) == 0 {
 			developers = []string{}
-		}
+		}*/
 
 		util.Log.Debug("Gathering full details")
 
@@ -691,19 +692,19 @@ func main() {
 		http.Handle(path.Join("/", dir.Name), http.FileServer(http.Dir(dir.Path)))
 	}
 
-	http.HandleFunc("/api/apps", appsEndpoint)
-	http.HandleFunc("/api/alt/", altAppsEndpoint)
-	http.HandleFunc("/api/fetch", fetchIDEndpoint)
-	http.HandleFunc("/api/hosts", fetchHosts)
+	http.HandleFunc("/api2020/apps", appsEndpoint)
+	http.HandleFunc("/api2020/alt/", altAppsEndpoint)
+	http.HandleFunc("/api2020/fetch", fetchIDEndpoint)
+	http.HandleFunc("/api2020/hosts", fetchHosts)
 
-	http.HandleFunc("/api/stats/genre_host_averages", genreHostAvgEndpoint)
-	http.HandleFunc("/api/stats/app_company_freq", appCompanyFreqEndpoint)
-	http.HandleFunc("/api/stats/app_type_freq", appTypeFreqEndpoint)
-	http.HandleFunc("/api/stats/company_genre_coverage", companyGenreCoverageEndpoint)
+	http.HandleFunc("/api2020/stats/genre_host_averages", genreHostAvgEndpoint)
+	http.HandleFunc("/api2020/stats/app_company_freq", appCompanyFreqEndpoint)
+	http.HandleFunc("/api2020/stats/app_type_freq", appTypeFreqEndpoint)
+	http.HandleFunc("/api2020/stats/company_genre_coverage", companyGenreCoverageEndpoint)
 
-	http.HandleFunc("/api/companies/names", companyNamesEndpoint)
-	http.HandleFunc("/api/companies/associations", companyAppAssociations)
-	http.HandleFunc("/api/apps/associations", appCompanyAssociations)
+	http.HandleFunc("/api2020/companies/names", companyNamesEndpoint)
+	http.HandleFunc("/api2020/companies/associations", companyAppAssociations)
+	http.HandleFunc("/api2020/apps/associations", appCompanyAssociations)
 
 	panic(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }
