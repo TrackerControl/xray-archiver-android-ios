@@ -326,6 +326,8 @@ async function main() {
                     `Error: ${err}`
                 );
             }
+
+	        await new Promise((resolve) => setTimeout(resolve, 5000));
         }
 
         // await Promise.each(apps, download).catch(logger.err);

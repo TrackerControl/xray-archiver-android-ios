@@ -305,6 +305,15 @@ class DB {
         }
     }
 
+    async updateAdId(app, adid) {
+        try {
+            await this.query('UPDATE app_versions SET adid=$1 WHERE id = $2', [adid, app.id]);
+        } catch (err) {
+            logger.err('Error updating adid:', err);
+            throw err;
+        }
+    }
+
     // There are two steps to the analysis (1st with Go, 2nd with Node.js)
     async queryAppsToAnalyse(batch, analysisVersion) {
         logger.info('Getting Apps From the DB to Analyse.');
@@ -330,6 +339,35 @@ class DB {
                         v.last_analyze_attempt NULLS FIRST, \
                         p.max_installs USING > \
                     LIMIT $2', [analysisVersion, batch]);
+
+            if (res.rowCount <= 0) {
+                return Promise.reject('No apps found.');
+            }
+            logger.info('Found apps to analyse:', res.rowCount);
+            return res.rows;
+        } catch (err) {
+            logger.err('Error finding apps to analyse:', err);
+            throw err;
+        }
+    }
+
+    // There are two steps to the analysis (1st with Go, 2nd with Node.js)
+    async queryAppsForExodus(batch) {
+        logger.info('Getting Apps From the DB to Analyse.');
+        try {
+            const res = await this.query('SELECT \
+                        v.id, \
+                        v.app, \
+                        v.store, \
+                        v.region, \
+                        v.exodus_analysis, \
+                        v.apk_location \
+                    FROM \
+                        app_versions v FULL OUTER JOIN playstore_apps p ON (v.id = p.id) \
+                    WHERE \
+                        v.exodus_analysis IS NULL AND \
+                        downloaded \
+                    LIMIT $1', [batch]);
 
             if (res.rowCount <= 0) {
                 return Promise.reject('No apps found.');
@@ -625,3 +663,4 @@ class DB {
 }
 
 module.exports = DB;
+

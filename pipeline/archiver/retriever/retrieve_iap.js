@@ -20,8 +20,7 @@ function sleep(ms) {
             'SELECT a.id, app, store_url \
              FROM playstore_apps b \
              JOIN app_versions a ON a.id = b.id \
-             WHERE offersIAP IS NULL AND date_part(\'year\', released) > 2000 \
-             ORDER BY updated DESC \
+             WHERE offersIAP IS NULL \
              LIMIT $1 ', [batch]);
         if (res.rowCount <= 0) {
             logger.info('No more apps to process. Exiting..');

@@ -43,7 +43,7 @@ async function analyse(app) {
 
     // This method is very slow. 
     // TODO: There have been some issues with apps that use UNICODE characters. Example: com.langteng.verticalddz
-    if ((!app.frameworks || app.frameworks.length == 0) && obtainFrameworks) {
+    if (!app.frameworks && obtainFrameworks) {
         let frameworks = [];    
         try {
             const appName = fileList.match(/Payload\/([^\/]*?)\.app\/$/m)[1];
@@ -63,27 +63,22 @@ async function analyse(app) {
             await db.updateAppFrameworks(app, frameworks);
         } catch (ex) {
             logger.err(`could not obtain frameworks from ${appPath}. continuing.`, ex);
+            app.frameworks = ['failed_parsing_frameworks'];
         }
     } else {
         console.log('Skipping frameworks.');
-        app.frameworks = ['failed_parsing_frameworks'];
     }
 
     // Scan whole IPA for AdSupport, to check if a subpackage requests AdSupport
-    let hasAdId;
+    if (!app.frameworks.includes("AdSupport_Subpackage") && !app.frameworks.includes("NoAdSupport_Subpackage"))
     {
-        let command = `unzip -UU -p "${appPath}" | grep "ASIdentifierManager\\|AdSupport"`;
+        let command = `unzip -UU -p "${appPath}" | grep -m 1 -o -h "ASIdentifierManager\\|AdSupport"`;
+        console.log(command);
         try {
             const { stdout, stderr } = await bashExec(command, { maxBuffer: bufferSize });
-            hasAdId = true;
-        } catch (ex) {
-            hasAdId = false;
-        }
-
-        if (hasAdId && app.frameworks && !app.frameworks.includes("AdSupport") && !app.frameworks.includes("AdSupport_Subpackage")) {
             app.frameworks.push("AdSupport_Subpackage");
-            console.log('############################# FOUND ADID in SUBPACKAGE');
-            await db.updateAppFrameworks(app, app.frameworks);
+        } catch (ex) {
+            app.frameworks.push("NoAdSupport_Subpackage");
         }
     }
 
@@ -156,7 +151,7 @@ async function main() {
     for (;;) {
         let apps;
         try {
-            apps = await db.queryAppsToAnalyse(10000, analysisVersion);
+            apps = await db.queryAppsToAnalyse(1000, analysisVersion);
         } catch (err) {
             console.log('Waiting for 60');
             await new Promise((resolve) => setTimeout(resolve, 60000));

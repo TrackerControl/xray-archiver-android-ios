@@ -11,7 +11,7 @@ const db = new (require('../db/db'))('downloader');
 const trackerSignatures = require('./tracker_signatures');
 
 const bufferSize = 1024 * 10000;
-const analysisVersion = 11;
+const analysisVersion = 13;
 const aapt2Path = "~/sdk/build-tools/29.0.3/aapt2";
 
 function removeDuplicates(array) {
@@ -51,9 +51,23 @@ async function analyse(app) {
     logger.info('Starting analysis attempt for:', app.app);
     await db.updatedAnalyseAttempt(app);
     let manifestJson = JSON.stringify(app.manifest);
+    const appPath = path.join(app.apk_location, `${app.app}.apk`);
+
+    // Check AdId
+    if (app.adid !== false && app.adid !== true) {
+        let command = `unzip -UU -p "${appPath}" | grep "IAdvertisingIdService"`;
+        try {
+            const { stdout, stderr } = await bashExec(command, { maxBuffer: bufferSize });
+            db.updateAdId(app, true);
+        } catch (error) {
+            if (error.code == 1) { // exit code 1 if no match
+                db.updateAdId(app, false);
+            }
+        }
+    }
+
 
     // Try to obtain list of files in IPA
-    const appPath = path.join(app.apk_location, `${app.app}.apk`);
     let files = app.files;
     if (!files) {
         console.log('Getting file names..');
@@ -86,7 +100,6 @@ async function analyse(app) {
     	let exodus = await exodusAnalyse(appPath);
     	await db.updatedExodus(app, JSON.parse(exodus));
     }
-
 
     // Check if the app uses any tracking settings
     let metaData = app.manifest['manifest']['application']['meta-data'];
