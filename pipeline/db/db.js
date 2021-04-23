@@ -325,6 +325,8 @@ class DB {
                         v.region, \
                         v.manifest, \
                         v.exodus_analysis, \
+                        v.adid, \
+                        v.libradar, \
                         v.files, \
                         v.trackers, \
                         v.analysis_version, \
@@ -351,21 +353,22 @@ class DB {
         }
     }
 
-    // There are two steps to the analysis (1st with Go, 2nd with Node.js)
-    async queryAppsForExodus(batch) {
+    async queryAppsForLibraryAnalysis(batch) {
         logger.info('Getting Apps From the DB to Analyse.');
         try {
             const res = await this.query('SELECT \
                         v.id, \
                         v.app, \
                         v.store, \
+                        v.version, \
                         v.region, \
                         v.exodus_analysis, \
+                        v.libradar, \
                         v.apk_location \
                     FROM \
                         app_versions v FULL OUTER JOIN playstore_apps p ON (v.id = p.id) \
                     WHERE \
-                        v.exodus_analysis IS NULL AND \
+                        (v.exodus_analysis IS NULL OR v.libradar IS NULL) AND \
                         downloaded \
                     LIMIT $1', [batch]);
 
@@ -394,6 +397,15 @@ class DB {
             await this.query('UPDATE app_versions SET exodus_analysis=$1 WHERE id = $2', [exodus, app.id]);
         } catch (err) {
             logger.err('Error updating exodus analysis', err);
+            throw err;
+        }
+    }
+
+    async updatedLibradar(app, libradar) {
+        try {
+            await this.query('UPDATE app_versions SET libradar=$1 WHERE id = $2', [libradar, app.id]);
+        } catch (err) {
+            logger.err('Error updating libradar analysis', err);
             throw err;
         }
     }

@@ -11,11 +11,16 @@ const db = new (require('../db/db'))('downloader');
 const trackerSignatures = require('./tracker_signatures');
 
 const bufferSize = 1024 * 10000;
-const analysisVersion = 13;
+const analysisVersion = 14;
 const aapt2Path = "~/sdk/build-tools/29.0.3/aapt2";
 
 function removeDuplicates(array) {
     return [...new Set(array)];
+}
+
+async function libradarAnalyse(appPath) {
+    const { stdout, stderr } = await bashExec(`python3.7 ../libradar++/libradar/main.py "${appPath}"`, { maxBuffer: bufferSize });
+    return stdout;
 }
 
 async function exodusAnalyse(appPath) {
@@ -99,6 +104,11 @@ async function analyse(app) {
     if (!app.exodus_analysis && analysisVersion >= 8) {
     	let exodus = await exodusAnalyse(appPath);
     	await db.updatedExodus(app, JSON.parse(exodus));
+    }
+
+    if (!app.libradar && analysisVersion >= 14) {
+        let libradar = await libradarAnalyse(appPath);
+        await db.updatedLibradar(app, libradar);
     }
 
     // Check if the app uses any tracking settings
