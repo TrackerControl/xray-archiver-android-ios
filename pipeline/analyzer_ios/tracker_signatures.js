@@ -60,6 +60,7 @@ const permissions = [
                     {signature: 'NSSiriUsageDescription', name:'SiriUsage'},
                     {signature: 'NFCReaderUsageDescription', name:'NFCReaderUsage'},
                     {signature: 'NSHomeKitUsageDescription', name:'HomeKitUsage'},
+                    {signature: 'NSUserTrackingUsageDescription', name:'Tracking'}
                    ];
 
 module.exports = { manifest: manifest, files: files, settings: settings, bundles: bundles, permissions: permissions };
