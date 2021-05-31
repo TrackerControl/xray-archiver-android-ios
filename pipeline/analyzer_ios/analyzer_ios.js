@@ -10,7 +10,7 @@ const db = new (require('../db/db_ios'))('downloader');
 const trackerSignatures = require('./tracker_signatures');
 
 const bufferSize = 1024 * 10000;
-const analysisVersion = 6;
+const analysisVersion = 7;
 const obtainFrameworks = true;
 
 function removeDuplicates(array) {
@@ -44,7 +44,6 @@ async function analyse(app) {
     // This method is very slow. 
     // TODO: There have been some issues with apps that use UNICODE characters. Example: com.langteng.verticalddz
     if (!app.frameworks && obtainFrameworks) {
-        let frameworks = [];    
         try {
             const appName = fileList.match(/Payload\/([^\/]*?)\.app\/$/m)[1];
             // -UU disables unzip unicode support, which caused problems..
@@ -59,8 +58,8 @@ async function analyse(app) {
             while ((frameworkMatch = frameworkRegexp.exec(stdout)) !== null) {
                 frameworks.push(frameworkMatch[1]);
             }
-            frameworks = removeDuplicates(frameworks);
-            await db.updateAppFrameworks(app, frameworks);
+            app.frameworks = removeDuplicates(frameworks);
+            await db.updateAppFrameworks(app, app.frameworks);
         } catch (ex) {
             logger.err(`could not obtain frameworks from ${appPath}. continuing.`, ex);
             app.frameworks = ['failed_parsing_frameworks'];
@@ -68,6 +67,26 @@ async function analyse(app) {
     } else {
         console.log('Skipping frameworks.');
     }
+
+    if (app.frameworks) {
+        let analysed = false;
+        for (let framework of app.frameworks) {
+            if (framework.endsWith(".framework"))
+                analysed = true;
+        }
+
+        if (!analysed) {
+            const regexp2 = RegExp('\/([^\/]*?\.framework)\/$','gm');
+            let addedFrameworks = [];
+            let match2;
+            while ((match2 = regexp2.exec(fileList)) !== null) {
+                addedFrameworks.push(match2[1]);
+            }
+            app.frameworks = removeDuplicates(app.frameworks.concat(addedFrameworks));
+            await db.updateAppFrameworks(app, app.frameworks);
+        }
+    }
+    return;
 
     // Scan whole IPA for AdSupport, to check if a subpackage requests AdSupport
     if (!app.frameworks.includes("AdSupport_Subpackage") && !app.frameworks.includes("NoAdSupport_Subpackage"))
