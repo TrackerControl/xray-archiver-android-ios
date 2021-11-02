@@ -1,7 +1,5 @@
 # X-Ray Archiver
 
-*This project is part of PlatformControl: <https://github.com/OxfordHCC/PlatformControl>*
-
 Project for the archiving of mobile applications from the Google Play Store and the Apple App Store.
 
 Stores Application metadata and files, and provides a server API to access the results from outside.
