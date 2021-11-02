@@ -178,3 +178,59 @@ sudo cp $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/conf
 ```bash
 sudo apt install unzip
 ```
+
+## Citation
+
+If you use this project as part of your academic studies, please kindly cite the below articles:
+
+```
+@article{kollnig2021,
+      title={Are iPhones Really Better for Privacy? A Comparative Study of iOS and Android Apps}, 
+      author={Konrad Kollnig and Anastasia Shuba and Reuben Binns and Max {Van Kleek} and Nigel Shadbolt},
+      year={2021},
+      journal={arXiv preprint arXiv:2109.13722}
+}
+
+@inbook{10.1145/3173574.3173967,
+	author = {Van Kleek, Max and Binns, Reuben and Zhao, Jun and Slack, Adam and Lee, Sauyon and Ottewell, Dean and Shadbolt, Nigel},
+	title = {X-Ray Refine: Supporting the Exploration and Refinement of Information Exposure Resulting from Smartphone Apps},
+	year = {2018},
+	isbn = {9781450356206},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	url = {https://doi.org/10.1145/3173574.3173967},
+	pages = {1–13},
+	numpages = {13}
+}
+
+@inproceedings{10.1145/3201064.3201089,
+	author = {Binns, Reuben and Lyngs, Ulrik and Van Kleek, Max and Zhao, Jun and Libert, Timothy and Shadbolt, Nigel},
+	title = {Third Party Tracking in the Mobile Ecosystem},
+	year = {2018},
+	isbn = {9781450355636},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	url = {https://doi.org/10.1145/3201064.3201089},
+	doi = {10.1145/3201064.3201089},
+	booktitle = {Proceedings of the 10th ACM Conference on Web Science},
+	pages = {23–31},
+	numpages = {9},
+	keywords = {mobile, data protection, behavioural advertising, static analysis, privacy, tracking, android},
+	location = {Amsterdam, Netherlands},
+	series = {WebSci '18}
+}
+
+@inbook{10.1145/3025453.3025556,
+	author = {Van Kleek, Max and Liccardi, Ilaria and Binns, Reuben and Zhao, Jun and Weitzner, Daniel J. and Shadbolt, Nigel},
+	title = {Better the Devil You Know: Exposing the Data Sharing Practices of Smartphone Apps},
+	year = {2017},
+	isbn = {9781450346559},
+	publisher = {Association for Computing Machinery},
+	address = {New York, NY, USA},
+	url = {https://doi.org/10.1145/3025453.3025556},
+	booktitle = {Proceedings of the 2017 CHI Conference on Human Factors in Computing Systems},
+	pages = {5208–5220},
+	numpages = {13}
+}
+```
+
