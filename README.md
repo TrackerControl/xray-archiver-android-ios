@@ -134,7 +134,8 @@ sudo -u postgres psql xraydb < init_db_ios.sql
 - Install node packages
 
 ```bash
-npm install -g google-play-scraper pg
+cd pipeline
+npm install
 ```
 
 - Install `exodus-standalone`, as described at <https://github.com/Exodus-Privacy/exodus-standalone>. Then, update `exodus_path` in your `/etc/xray/config.json`
