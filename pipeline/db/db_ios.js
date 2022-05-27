@@ -580,7 +580,7 @@ class DB {
                 }
 
                 await client.lquery(
-                    'INSERT INTO playstore_apps VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, current_date, $21, $22)', [
+                    'INSERT INTO playstore_apps VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, current_date, $21, $22, $23)', [
                     verId,
                     app.title,
                     null, /* ToDo: Summary does not exist on iOS */
@@ -602,7 +602,8 @@ class DB {
                     null, /* No video on iOS */
                     [app.releaseNotes],
                     null, /* permissions will be added later */
-                    new Date(app.released)
+                    new Date(app.released),
+                    app.privacyLabels
                 ]);
             }
             await client.lquery('COMMIT');
@@ -614,6 +615,27 @@ class DB {
             client.release();
         }
         return verId;
+    }
+
+    async getMissingPrivacyLabels() {
+        try {
+            logger.debug('Fetching Missing Privacy labels');
+            const res = await this.query('SELECT p.id, app, store_url FROM playstore_apps p JOIN app_versions v ON v.id = p.id WHERE privacy_labels is null');
+            logger.debug(`${res.rows.length} apps found`);
+            return res.rows;
+        } catch (err) {
+            logger.err('Error getting missing privacy labels', err);
+            throw err;
+        }
+    }
+
+    async updatePrivacyLabel(id, privacyLabels) {
+        try {
+            await this.query('UPDATE playstore_apps SET privacy_labels=$2 WHERE id = $1', [id, privacyLabels]);
+        } catch (err) {
+            logger.err('Error updating privacy labels:', err);
+            throw err;
+        }
     }
 }
 

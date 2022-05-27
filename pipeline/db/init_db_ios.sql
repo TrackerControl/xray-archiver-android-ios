@@ -98,7 +98,8 @@ create table playstore_apps(
   recent_changes       text[]                                                 ,
   crawl_date             date                                         not null,
   permissions          text[]                                                 ,
-  released               date
+  released               date                                                 ,
+  privacy_labels         json
 );
 
 create table search_terms(
@@ -343,7 +344,7 @@ grant insert, select on search_terms to explorer;
 grant select, insert, update on apps to retriever;
 grant select, insert on app_versions to retriever;
 grant usage on app_versions_id_seq to retriever;
-grant select, insert on playstore_apps to retriever;
+grant select, insert, update on playstore_apps to retriever;
 grant select, update on search_terms to retriever;
 grant select, insert, update on developers to retriever;
 grant usage on developers_id_seq to retriever;

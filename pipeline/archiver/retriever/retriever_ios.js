@@ -34,6 +34,7 @@ async function fetchAppData(searchTerm, numberOfApps, perSecond) {
 
     for (const appData of appSearchResults) {        
         logger.debug(`inserting ${appData.title} to the DB`);
+        //appData.privacyLabels = await ios.privacy({id: appData.id});	
         await insertAppData(appData).catch((err) => logger.err(err));
     }
 }
