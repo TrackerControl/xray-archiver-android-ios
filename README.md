@@ -44,7 +44,7 @@ The `App Downloader` fetches Android and Apple app files using the app data that
 
 The script utilises the `GPlayCli` for connecting to the app stores for downloading app files.
 
-For Android app downloading, first start python-token-dispenser with:
+For Android app downloading, first start platformcontrol-token-dispenser with:
 
 ```bash
 python3 token_dispenser.py &
@@ -65,7 +65,7 @@ node pipeline/archiver/downloader/downloader.js
 ```
 
 #### iOS
-For downloading iOS apps, use our App Store Downloader from <https://github.com/OxfordHCC/app-store-downloader>.
+For downloading iOS apps, use our App Store Downloader from <https://github.com/TrackerControl/app-store-downloader>.
 
 This requires a dedicated Windows machine.
 
@@ -144,30 +144,30 @@ npm install
 
 ```bash
 sudo mkdir /etc/xray
-sudo cp $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/config/example_config.json /etc/xray/config.json
-sudo cp $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/config/example_config.json /etc/xray/config_ios.json
+sudo cp $GOPATH/src/github.com/TrackerControl/xray-archiver-android-ios/pipeline/config/example_config.json /etc/xray/config.json
+sudo cp $GOPATH/src/github.com/TrackerControl/xray-archiver-android-ios/pipeline/config/example_config.json /etc/xray/config_ios.json
 ```
 
 - Download and compile source
 
 ```bash
-go get github.com/OxfordHCC/xray-archiver-android-ios/pipeline
-cd $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline
+go get github.com/TrackerControl/xray-archiver-android-ios/pipeline
+cd $GOPATH/src/github.com/TrackerControl/xray-archiver-android-ios/pipeline
 ./scripts/install.sh
 ```
 
 - Set up token dispenser
 
 ```bash
-git clone https://github.com/kasnder/python-token-dispenser
+git clone https://github.com/TrackerControl/platformcontrol-token-dispenser
 ```
 
-- Now, put Goole credentials into your `python-token-dispenser/passwords/passwords.txt`
+- Now, put Goole credentials into your `platformcontrol-token-dispenser/passwords/passwords.txt`
 - Install modified gplaycli
 
 ```bash
-git clone https://github.com/kasnder/gplaycli && pip3 install ./gplaycli/
-sudo cp $GOPATH/src/github.com/OxfordHCC/xray-archiver-android-ios/pipeline/config/example_credentials.json /etc/xray/credentials.json
+git clone https://github.com/TrackerControl/gplaycli && pip3 install ./gplaycli/
+sudo cp $GOPATH/src/github.com/TrackerControl/xray-archiver-android-ios/pipeline/config/example_credentials.json /etc/xray/credentials.json
 ```
 
 - Install apktool according to the instructions at <https://ibotpeaches.github.io/Apktool/install/>
